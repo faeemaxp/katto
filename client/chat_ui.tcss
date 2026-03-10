@@ -1,0 +1,597 @@
+/* ==========================================
+   KATTO — MODERN NEON/SLATE THEME
+   ========================================== */
+
+/* --- GLOBAL STYLES --- */
+Screen {
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+Header {
+    background: #0b1120;
+    color: #6366f1;
+    text-style: bold;
+    dock: top;
+}
+
+Footer {
+    background: #0b1120;
+    color: #94a3b8;
+    dock: bottom;
+}
+
+/* ==========================================
+   LOGIN SCREEN
+   ========================================== */
+
+#login-logo {
+    color: #6366f1;
+    text-style: bold;
+    content-align: center middle;
+    width: 100%;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+#login-subtitle {
+    color: #94a3b8;
+    content-align: center middle;
+    width: 100%;
+    margin-bottom: 2;
+    text-style: italic;
+}
+
+#login-card {
+    width: 60;
+    height: auto;
+    border: round #334155;
+    background: #1e293b;
+    padding: 1 2;
+    margin: 1;
+}
+
+#login-card Input {
+    margin-bottom: 0;
+    background: #0f172a;
+    border: tall #334155;
+    color: #f8fafc;
+    padding: 0 1;
+}
+
+#login-card Input:focus {
+    border: tall #8b5cf6;
+    background: #151f38;
+}
+
+#server-toggle {
+    height: auto;
+    margin-bottom: 0;
+    content-align: left middle;
+}
+
+#server-toggle Label {
+    color: #94a3b8;
+    margin-right: 2;
+}
+
+#server-toggle RadioButton {
+    background: transparent;
+    color: #f8fafc;
+}
+
+#server-toggle RadioButton:focus {
+    text-style: bold;
+}
+
+#custom-server-input {
+    display: none;
+}
+
+#login-buttons {
+    height: auto;
+    layout: horizontal;
+    margin-top: 1;
+    align: center middle;
+}
+
+#login-btn {
+    background: #6366f1;
+    color: #ffffff;
+    border: none;
+    min-width: 18;
+    margin-right: 2;
+    text-style: bold;
+}
+
+#login-btn:hover {
+    background: #818cf8;
+}
+
+#signup-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    min-width: 18;
+}
+
+#signup-btn:hover {
+    background: #475569;
+}
+
+#login-status {
+    color: #ef4444;
+    content-align: center middle;
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+    text-style: bold;
+}
+
+/* ==========================================
+   DASHBOARD SCREEN
+   ========================================== */
+
+#dashboard {
+    layout: horizontal;
+    height: 1fr;
+}
+
+/* --- SIDEBAR --- */
+#sidebar {
+    width: 32;
+    background: #0b1120;
+    border-right: vkey #334155;
+    height: 100%;
+}
+
+#sidebar-profile-area {
+    width: 100%;
+    height: auto;
+    background: #0f172a;
+    border-bottom: hkey #334155;
+    padding: 1 2;
+    layout: horizontal;
+}
+
+#sidebar-user-btn {
+    width: 1fr;
+    color: #f8fafc;
+    text-style: bold;
+    content-align: left middle;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+#sidebar-user-btn:hover {
+    color: #818cf8;
+}
+
+#sidebar-top-actions {
+    width: auto;
+    height: auto;
+    layout: horizontal;
+}
+
+.icon-btn {
+    min-width: 4;
+    padding: 0;
+    margin-left: 1;
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+}
+
+.icon-btn:hover {
+    color: #f8fafc;
+    background: #1e293b;
+}
+
+#sidebar-scroll-area {
+    height: 1fr;
+    scrollbar-size-vertical: 1;
+}
+
+#sidebar-dms {
+    height: auto;
+    min-height: 1;
+}
+
+#sidebar-section-title {
+    color: #6366f1;
+    text-style: bold;
+    padding: 1 1 0 2;
+}
+
+.sidebar-section-title {
+    color: #6366f1;
+    text-style: bold;
+    padding: 1 1 0 2;
+}
+
+.room-btn {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    width: 100%;
+    content-align: left middle;
+    padding: 0 2;
+    height: 1;
+}
+
+.room-btn:hover {
+    background: #1e293b;
+    color: #f8fafc;
+}
+
+.room-btn:focus {
+    background: #1e1b4b;
+    color: #818cf8;
+    text-style: bold;
+    border-left: thick #6366f1;
+}
+
+.dm-btn {
+    background: transparent;
+    color: #94a3b8;
+    border: none;
+    width: 100%;
+    content-align: left middle;
+    padding: 0 2;
+    height: 1;
+}
+
+.dm-btn:hover {
+    background: #1e293b;
+    color: #ec4899;
+}
+
+.dm-btn:focus {
+    background: #4c1d95;
+    color: #f9a8d4;
+    text-style: bold;
+    border-left: thick #ec4899;
+}
+
+#sidebar-actions {
+    dock: bottom;
+    height: auto;
+    padding: 1;
+    border-top: hkey #334155;
+    background: #0b1120;
+}
+
+#profile-btn {
+    display: none;
+}
+
+#quit-btn {
+    background: #1e293b;
+    color: #ef4444;
+    border: none;
+    width: 100%;
+}
+
+#quit-btn:hover {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+/* --- MAIN CONTENT AREA --- */
+#main-content {
+    width: 1fr;
+    height: 100%;
+    background: #0f172a;
+}
+
+#channel-header-container {
+    dock: top;
+    height: 3;
+    background: #1e293b;
+    border-bottom: hkey #334155;
+    padding: 0 2;
+    layout: horizontal;
+    align: left middle;
+}
+
+#channel-icon {
+    color: #6366f1;
+    text-style: bold;
+    margin-right: 1;
+    content-align: center middle;
+}
+
+#channel-name {
+    color: #f8fafc;
+    text-style: bold;
+    content-align: left middle;
+}
+
+#chat-history {
+    height: 1fr;
+    padding: 1 2;
+    background: #0f172a;
+}
+
+.msg-system {
+    color: #94a3b8;
+    text-style: italic;
+    margin-bottom: 0;
+}
+
+.msg-self {
+    color: #818cf8;
+    margin-bottom: 0;
+}
+
+.msg-other {
+    color: #f8fafc;
+    margin-bottom: 0;
+}
+
+.msg-error {
+    color: #ef4444;
+    margin-bottom: 0;
+}
+
+.msg-help {
+    color: #10b981;
+    margin-bottom: 0;
+}
+
+#message-input {
+    dock: bottom;
+    margin: 0 2 1 2;
+    background: #1e293b;
+    border: tall #334155;
+    color: #f8fafc;
+}
+
+#message-input:focus {
+    border: tall #8b5cf6;
+    background: #1e1b4b;
+}
+
+/* ==========================================
+   PROFILE SCREEN
+   ========================================== */
+
+#profile-title {
+    color: #6366f1;
+    text-style: bold;
+    content-align: center middle;
+    width: 100%;
+    margin-bottom: 1;
+    margin-top: 1;
+}
+
+#profile-card {
+    width: 60;
+    height: auto;
+    border: round #334155;
+    background: #1e293b;
+    padding: 1 2;
+    margin: 1;
+}
+
+#profile-username {
+    color: #f8fafc;
+    text-style: bold;
+    margin-bottom: 1;
+    content-align: center middle;
+    width: 100%;
+}
+
+.profile-label {
+    color: #94a3b8;
+    margin-top: 1;
+}
+
+#profile-card Input {
+    margin-bottom: 0;
+    background: #0f172a;
+    border: tall #334155;
+    color: #f8fafc;
+    padding: 0 1;
+}
+
+#profile-card Input:focus {
+    border: tall #8b5cf6;
+    background: #151f38;
+}
+
+#avatar-radio-set {
+    height: auto;
+    margin-top: 1;
+    margin-bottom: 1;
+}
+
+#avatar-radio-set RadioButton {
+    background: transparent;
+    color: #f8fafc;
+}
+
+#avatar-radio-set RadioButton:focus {
+    text-style: bold;
+}
+
+#profile-buttons {
+    height: auto;
+    layout: horizontal;
+    margin-top: 1;
+    align: center middle;
+}
+
+#save-profile-btn {
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    min-width: 18;
+    margin-right: 2;
+    text-style: bold;
+}
+
+#save-profile-btn:hover {
+    background: #059669;
+}
+
+#cancel-profile-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    min-width: 18;
+}
+
+#cancel-profile-btn:hover {
+    background: #475569;
+}
+
+#profile-status {
+    color: #ef4444;
+    content-align: center middle;
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+    text-style: bold;
+}
+
+/* ==========================================
+   OTHER USER PROFILE SCREEN
+   ========================================== */
+
+#other-profile-title {
+    color: #6366f1;
+    text-style: bold;
+    content-align: center middle;
+    width: 100%;
+    margin-bottom: 1;
+    margin-top: 1;
+}
+
+#other-profile-card {
+    width: 60;
+    height: auto;
+    border: round #334155;
+    background: #1e293b;
+    padding: 1 2;
+    margin: 1;
+}
+
+#other-profile-bio, #other-profile-avatar {
+    color: #f8fafc;
+    margin-bottom: 1;
+}
+
+#other-profile-actions {
+    height: auto;
+    layout: horizontal;
+    margin-top: 1;
+    margin-bottom: 1;
+    align: center middle;
+}
+
+#add-friend-btn {
+    background: #6366f1;
+    color: #ffffff;
+    border: none;
+    min-width: 16;
+    margin-right: 2;
+    text-style: bold;
+}
+
+#add-friend-btn:hover {
+    background: #818cf8;
+}
+
+#message-user-btn {
+    background: #10b981;
+    color: #ffffff;
+    border: none;
+    min-width: 16;
+    text-style: bold;
+}
+
+#message-user-btn:hover {
+    background: #059669;
+}
+
+#close-profile-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    width: 100%;
+    margin-top: 1;
+}
+
+#close-profile-btn:hover {
+    background: #475569;
+}
+
+#other-profile-status {
+    color: #ef4444;
+    content-align: center middle;
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+    text-style: bold;
+}
+
+/* ==========================================
+   NOTIFICATIONS SCREEN
+   ========================================== */
+
+#notifications-title {
+    color: #ec4899;
+    text-style: bold;
+    content-align: center middle;
+    width: 100%;
+    margin-bottom: 1;
+    margin-top: 1;
+}
+
+#notifications-card {
+    width: 60;
+    height: 16;
+    border: round #334155;
+    background: #1e293b;
+    padding: 1 2;
+    margin: 1;
+}
+
+.notification-item {
+    height: auto;
+    layout: horizontal;
+    background: #0f172a;
+    padding: 0 1;
+    margin-bottom: 1;
+    border: tall #334155;
+    align: left middle;
+}
+
+.notification-text {
+    width: 1fr;
+    color: #f8fafc;
+    content-align: left middle;
+}
+
+.notification-empty {
+    color: #94a3b8;
+    text-style: italic;
+    content-align: center middle;
+    width: 100%;
+    margin-top: 1;
+}
+
+#close-notifications-btn {
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    width: 100%;
+    margin-top: 1;
+    align: center middle;
+}
+
+#close-notifications-btn:hover {
+    background: #475569;
+}
