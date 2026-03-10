@@ -1,87 +1,142 @@
 from textual.app import App, ComposeResult
 from textual.screen import Screen
 from textual.containers import VerticalScroll, Center, Middle
-from textual.widgets import Header, Footer, Input, Label, OptionList
+from textual.widgets import Header, Footer, Input, Label, OptionList, Button
+from random import choice
+import json
+import asyncio
+import websockets
 
 # ==========================================
-# SCREEN 1: THE MAIN MENU (Updated)
+# RANDOMIZED ASCII LOGO
+# ==========================================
+KATTO_LOGO = choice([
+    # 1. The Clean Classic
+    r"""
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█
+""",
+    
+    # 2. The Hanging & Sitting Cats
+    r"""
+                   |\__/|
+     /\_/\        ( ' x ')
+    ( o.o )       // |  |
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█ /_/\_/\
+""",
+    
+    # 3. The Sleeping & Stretching Cats
+    r"""
+     Zz.      |\_/|
+   ( -_-)    ( - . - )
+  /|___|\   /|___|\
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█ ~tail~
+ █ █ █▀█  █   █  █▄█
+""",
+    
+    # 4. The Multiple Walking Cats
+    r"""
+            |\_/| |\__/|
+           (=^.^=)(=ò.ó=)
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█
+   \_/\_/      \_/\_/
+  (> ^_^)>    (> ^_^)>
+""",
+
+    # 5. The Sorcerer Cat
+    r"""
+     /\___/\   "Domain Expansion..."
+    ( [===] )
+     \  -  / 
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█
+""",
+
+    # 6. The Tactical Op Cat
+    r"""
+     /\_/\    
+    (⌐■_■)  < "Rush B."
+    /|___|\
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█
+"""
+])
+# ==========================================
+# SCREEN 1: THE HOME MENU
 # ==========================================
 class HomeScreen(Screen):
-    """The main menu screen with arrow-key navigation."""
-
     def compose(self) -> ComposeResult:
         yield Header()
         with Center():
             with Middle():
-                yield Label("Terminal Chat Menu", id="welcome-title")
-                
-                # This is the magic widget!
-                yield OptionList(
-                    "Join Chat Room",
-                    "Settings",
-                    "Exit App",
-                    id="main-menu"
-                )
+                yield Label(KATTO_LOGO, id="ascii-logo")
+                yield Label("Welcome to Katto", id="welcome-title")
+                yield Input(placeholder="Username...", id="user-input")
+                yield Input(placeholder="Server IP (e.g. 127.0.0.1:8000)", id="server-input")
+                yield Button("Connect", variant="success", id="connect-btn")
         yield Footer()
 
-    def on_mount(self) -> None:
-        """Focus the menu automatically when the screen loads."""
-        self.query_one("#main-menu").focus()
-
-    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
-        """This event triggers exactly when the user presses Enter on an option."""
-        
-        # event.option.prompt gets the text of the item they selected
-        selected_text = str(event.option.prompt)
-        
-        if selected_text == "Join Chat Room":
-            # For now, we will just pass a default username to the chat screen
-            self.app.push_screen(ChatScreen(username="Guest User"))
-            
-        elif selected_text == "Settings":
-            # You can build a settings screen later!
-            self.app.notify("Settings menu coming soon...")
-            
-        elif selected_text == "Exit App":
-            self.app.exit()
-
-# (Keep your ChatScreen and TerminalChatApp code exactly the same as before!)
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        user = self.query_one("#user-input").value
+        server = self.query_one("#server-input").value or "127.0.0.1:8000"
+        if user:
+            self.app.push_screen(ChatScreen(username=user, server_url=server))
 
 # ==========================================
-# SCREEN 2: THE CHAT SCREEN (Your previous code)
+# SCREEN 2: THE LIVE CHAT SCREEN
 # ==========================================
 class ChatScreen(Screen):
-    """The actual chat room screen."""
-    
-    # We accept the username passed from the HomeScreen
-    def __init__(self, username: str, **kwargs):
+    def __init__(self, username: str, server_url: str, **kwargs):
         super().__init__(**kwargs)
         self.username = username
+        self.server_url = f"ws://{server_url}/ws/{username}"
+        self.websocket = None
 
     def compose(self) -> ComposeResult:
         yield Header()
         with VerticalScroll(id="chat-history"):
-            yield Label(f"System: Welcome to the room, {self.username}!")
-        yield Input(placeholder="Type your message...", id="message-input")
+            yield Label(f"System: Connecting to {self.server_url}...")
+        yield Input(placeholder="Type a message...", id="message-input")
         yield Footer()
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         self.query_one("#message-input").focus()
+        # Start the background listener for incoming messages
+        self.run_worker(self.listen_for_messages())
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def listen_for_messages(self) -> None:
+        """Connects to FastAPI and waits for messages."""
+        try:
+            async with websockets.connect(self.server_url) as ws:
+                self.websocket = ws
+                while True:
+                    raw_data = await ws.recv()
+                    data = json.loads(raw_data)
+                    
+                    # Add message to UI
+                    chat_history = self.query_one("#chat-history")
+                    sender = data.get("sender", "Unknown")
+                    content = data.get("content", "")
+                    
+                    chat_history.mount(Label(f"[bold cyan]{sender}:[/] {content}"))
+                    chat_history.scroll_end(animate=False)
+        except Exception as e:
+            self.query_one("#chat-history").mount(Label(f"Error: {e}"))
+
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
         message = event.value
         event.input.value = ""
-        chat_history = self.query_one("#chat-history")
         
-        # Use the custom username they entered!
-        chat_history.mount(Label(f"{self.username}: {message}"))
-        chat_history.scroll_end(animate=False)
-
-
+        if self.websocket and message.strip():
+            # Send message to FastAPI server
+            payload = json.dumps({"content": message})
+            await self.websocket.send(payload)
 # ==========================================
 # THE MAIN APP CONTROLLER
 # ==========================================
-class TerminalChatApp(App):
+class katto(App):
     """The main application that manages our screens."""
     CSS = """
                 /* ==========================================
@@ -126,6 +181,14 @@ class TerminalChatApp(App):
                     Because we wrapped this inside 'Center()' and 'Middle()' in your Python code, 
                     Textual is already centering the whole box perfectly on the screen for you! */
                 }
+                /* Add this under your Home Screen CSS section */
+                    #ascii-logo {
+                    color: cyan;
+                    text-style: bold;
+                    content-align: center middle;
+                    width: 100%;
+                    margin-bottom: 2; /* Gives some space before the menu */
+    }
                 """
 
     def on_mount(self) -> None:
@@ -133,7 +196,7 @@ class TerminalChatApp(App):
         self.push_screen(HomeScreen())
 
 if __name__ == "__main__":
-    app = TerminalChatApp()
+    app = katto()
     debug = True  # Set to True to enable debug mode (optional)
     app.run() 
     

@@ -1,73 +1,66 @@
-# Import Python's networking library
-import socket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from motor.motor_asyncio import AsyncIOMotorClient
+import json
+import asyncio
 
+# 1. DATABASE SETUP
+# Note: In a real project, use: MONGO_URL = os.getenv("MONGO_URL")
+MONGO_URL = "mongodb+srv://faeemscience:naeem123hasnain@cluster0.kxa6ib3.mongodb.net/"
+client = AsyncIOMotorClient(MONGO_URL)
+db = client.katto_db
+profiles = db.profiles 
 
-# ---------------------------
-# STEP 1: CREATE A SOCKET
-# ---------------------------
-# AF_INET  -> IPv4 internet protocol
-# SOCK_STREAM -> TCP connection (reliable)
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+app = FastAPI()
 
+# We use a set() instead of a list[] because it's faster for removing items
+active_connections: set[WebSocket] = set()
 
-# ---------------------------
-# STEP 2: BIND TO ADDRESS
-# ---------------------------
-# "0.0.0.0" means listen on ALL network interfaces
-# 5000 is the port number clients will connect to
-server.bind(("0.0.0.0", 5000))
+async def broadcast(message: dict):
+    """Safely sends a message to everyone, skipping dead connections."""
+    message_json = json.dumps(message)
+    # We create a copy of the set to avoid "size changed during iteration" errors
+    for connection in list(active_connections):
+        try:
+            await connection.send_text(message_json)
+        except Exception:
+            # If sending fails, the connection is dead. Remove it.
+            active_connections.remove(connection)
 
+@app.websocket("/ws/{username}")
+async def websocket_endpoint(websocket: WebSocket, username: str):
+    await websocket.accept()
+    active_connections.add(websocket)
+    
+    # 2. PROFILE LOGIC
+    user = await profiles.find_one({"username": username})
+    if not user:
+        new_profile = {
+            "username": username,
+            "bio": "A mysterious Katto user.",
+            "followers": [],
+            "status": "online"
+        }
+        await profiles.insert_one(new_profile)
 
-# ---------------------------
-# STEP 3: START LISTENING
-# ---------------------------
-# listen() tells the OS that this program will accept connections
-server.listen()
+    # 3. JOIN ANNOUNCEMENT
+    await broadcast({"sender": "System", "content": f"{username} joined!"})
 
-print("Server started")
-print("Waiting for client connection...")
+    try:
+        while True:
+            # Wait for message from client
+            data = await websocket.receive_text()
+            message_data = json.loads(data)
+            
+            # 4. CHAT BROADCAST
+            await broadcast({
+                "sender": username, 
+                "content": message_data.get("content", "")
+            })
 
-
-# ---------------------------
-# STEP 4: ACCEPT CONNECTION
-# ---------------------------
-# accept() blocks (waits) until a client connects
-# conn = the socket used to communicate with that client
-# addr = client's address (IP, port)
-conn, addr = server.accept()
-
-print("Client connected from:", addr)
-
-
-# ---------------------------
-# STEP 5: MESSAGE LOOP
-# ---------------------------
-# Now we continuously send/receive messages
-while True:
-
-    # receive data from client
-    # 1024 = max number of bytes to receive
-    data = conn.recv(1024)
-
-    # if no data, client disconnected
-    if not data:
-        break
-
-    # convert bytes -> string
-    message = data.decode()
-
-    print("Client:", message)
-
-    # send reply
-    reply = input("You: ")
-
-    # convert string -> bytes
-    conn.send(reply.encode())
-
-
-# ---------------------------
-# STEP 6: CLOSE CONNECTION
-# ---------------------------
-conn.close()
-
-print("Connection closed")
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
+        await broadcast({"sender": "System", "content": f"{username} left."})
+    except Exception as e:
+        print(f"Error with {username}: {e}")
+        if websocket in active_connections:
+            active_connections.remove(websocket)
