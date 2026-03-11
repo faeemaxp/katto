@@ -3,7 +3,8 @@
 
 Bringing people together, one message at a time. A modern, Discord-like chat application built entirely for the terminal using Textual.
 
-![Katto Banner](docs/assets/banner_placeholder.png) <!-- Replace this with a wide screenshot of the main chat dashboard -->
+## 📝 About
+Katto is a full-featured terminal chat application that brings real-time messaging to your command line. Built with Python and [Textual](https://textual.textualize.io/), it provides a modern, interactive TUI experience comparable to desktop chat clients like Discord, but entirely within your terminal. Perfect for developers, sysadmins, and terminal enthusiasts who want to stay connected without leaving their shell.
 
 ## ✨ Features
 - **Modern TUI:** Beautiful, interactive interface that feels like a modern web app but lives in your terminal.
@@ -22,7 +23,7 @@ If you just want to run the app as a command-line tool, we recommend using [pipx
 
 ```bash
 # Install directly from the repository
-pipx install git+https://github.com/your-username/katto.git
+pipx install git+https://github.com/faeemaxp/katto.git
 
 # Run it!
 katto
@@ -33,7 +34,7 @@ If you want to look at the code or contribute to it:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/katto.git
+git clone https://github.com/faeemaxp/katto.git
 cd katto
 
 # 2. Install using pip
@@ -47,17 +48,15 @@ katto
 
 ## 📸 Screenshots
 
-| Login Screen | Dashboard / Chat |
+| Login Screen | Main Dashboard |
 | :---: | :---: |
-| ![Login Placeholder](docs/assets/login_placeholder.png) | ![Chat Placeholder](docs/assets/chat_placeholder.png) |
-| *Log in or create a new account* | *Live chat in #general* |
+| ![Login Screen](screenshots/login.png) | ![Chat Dashboard](screenshots/random.png) |
+| *Create account or log in with custom server support* | *Real-time chat with friends, DMs, and public rooms* |
 
-| Friends & DMs | Command Palette |
+| Direct Messaging | Commands Reference |
 | :---: | :---: |
-| ![Friends Placeholder](docs/assets/friends_placeholder.png) | ![Commands Placeholder](docs/assets/commands_placeholder.png) |
-| *Send friend requests and private messages* | *Navigate quickly via /commands* |
-
-*(Note: Replace the placeholder image links above with actual screenshots of your application)*
+| ![Direct Messages](screenshots/solo.png) | ![Help Commands](screenshots/commands.png) |
+| *Private 1-on-1 conversations with friends* | *Complete slash command reference* |
 
 ---
 
@@ -81,21 +80,88 @@ Type `/help` anywhere in the app to see all available commands.
 
 ## 🛠️ For Developers: Running the Server
 
-Katto is a client-server application. By default, the client tries to connect to the cloud server, but you can also run your own server locally.
+Katto is a client-server application. By default, the client connects to the cloud server, but you can run your own server locally for development.
 
-**Requirements:**
+### Prerequisites
 - Python 3.11+
-- MongoDB
+- MongoDB (for local development)
+- pip / pipenv
 
-1. Navigate to the `server/` directory.
-2. Ensure you have the backend dependencies installed (`pip install -r requirements.txt` / `fastapi`, `uvicorn`, `motor`, etc.).
-3. Start the local server:
-```bash
-uvicorn main:app --reload
+### Local Server Setup
+1. Navigate to the `server/` directory:
+   ```bash
+   cd server
+   ```
+
+2. Install backend dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Ensure MongoDB is running locally (or update the connection string in the server code).
+
+4. Start the local server:
+   ```bash
+   uvicorn main:app --reload
+   ```
+   The server will be available at `http://127.0.0.1:8000`
+
+5. Update the client to use your local server:
+   - Edit `client/app.py` and change `DEFAULT_SERVER = "katto-server-production.up.railway.app"` to `DEFAULT_SERVER = "127.0.0.1:8000"`
+   - Or log in using the custom server option in the login screen
+
+### Project Structure
 ```
-4. Update `DEFAULT_SERVER = "127.0.0.1:8000"` in `client/app.py` or log in using the local IP.
+katto/
+├── client/              # Textual TUI application
+│   ├── app.py          # Main client application
+│   ├── chat_ui.tcss    # Styling (Textual CSS)
+│   └── ui_assets.py    # UI assets and constants
+├── server/             # FastAPI backend
+│   ├── main.py         # Server entry point
+│   ├── database.py     # Database models and operations
+│   └── requirements.txt # Python dependencies
+└── pyproject.toml      # Package configuration
+```
 
 ---
 
-## 📜 License
+## � Requirements
+
+### Client
+- Python 3.10+
+- Textual (TUI framework)
+- httpx (async HTTP client)
+- websockets (WebSocket support)
+
+### Server
+- Python 3.11+
+- FastAPI
+- Uvicorn
+- Motor (async MongoDB driver)
+- PyMongo
+
+---
+
+## 🏗️ Tech Stack
+- **Frontend (TUI):** [Textual](https://textual.textualize.io/) - A powerful Python TUI framework
+- **Backend:** [FastAPI](https://fastapi.tiangolo.com/) - Modern, fast web framework
+- **Database:** MongoDB - NoSQL database
+- **Real-time Messaging:** WebSockets
+- **HTTP Client:** httpx - Async HTTP client
+
+---
+
+## 🤝 Contributing
+We welcome contributions! Feel free to:
+- Report bugs and issues
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+Please follow the existing code style and add tests for new features.
+
+---
+
+## �📜 License
 Distributed under the MIT License. See `LICENSE` for more information.

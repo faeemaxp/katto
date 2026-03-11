@@ -165,7 +165,7 @@ class Sidebar(Widget):
                 yield Button(f" @{self.username}", id="sidebar-user-btn")
                 yield Label("● Connecting...", id="ws-status-text")
             with Horizontal(id="sidebar-top-actions"):
-                yield Button("🔔", id="notifications-btn", classes="icon-btn")
+                yield Button("!", id="notifications-btn", classes="icon-btn")
 
         with VerticalScroll(id="sidebar-scroll-area"):
             yield Label("FRIENDS & DMs", classes="sidebar-section-title")
@@ -520,10 +520,10 @@ class DashboardScreen(Screen):
             try:
                 notif_btn = self.query_one("#notifications-btn")
                 if pending:
-                    notif_btn.label = f"\ud83d\udd14 {len(pending)}"
+                    notif_btn.label = f"[{len(pending)}]"
                     notif_btn.styles.color = "#ec4899"
                 else:
-                    notif_btn.label = "\ud83d\udd14"
+                    notif_btn.label = "!"
                     notif_btn.styles.color = "#94a3b8"
             except Exception:
                 pass
