@@ -15,7 +15,12 @@ from datetime import datetime
 import os, json as _json
 from pathlib import Path
 from importlib.resources import files as _res_files
-from client.ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS, ROOM_TOPICS
+try:
+    # Works when installed as a package (katto) or run from project root (python -m client.app)
+    from client.ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS, ROOM_TOPICS
+except ImportError:
+    # Works when run directly inside the client folder (python app.py)
+    from ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS, ROOM_TOPICS
 
 SESSION_FILE = Path.home() / ".katto_session.json"
 
@@ -34,7 +39,7 @@ def save_session(username: str, server: str) -> None:
         pass
 
 # Default server URL
-DEFAULT_SERVER = "127.0.0.1:8000"
+DEFAULT_SERVER = "katto-server-production.up.railway.app"
 TAGLINES = [
     "Connect. Converse. Collaborate.",
     "The minimalist chat experience.",

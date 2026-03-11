@@ -1,7 +1,15 @@
+import os
 from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
 
-# Note: In a real project, use: MONGO_URL = os.getenv("MONGO_URL")
-MONGO_URL = "mongodb+srv://faeemscience:naeem123hasnain@cluster0.kxa6ib3.mongodb.net/"
+# Load environment variables from .env file
+load_dotenv()
+
+# Load from environment variable for production (Render/Railway), fallback to None if missing
+MONGO_URL = os.getenv("MONGO_URI")
+if not MONGO_URL:
+    raise ValueError("MONGO_URI environment variable is required. Check your .env file or server settings.")
+
 client = AsyncIOMotorClient(MONGO_URL)
 db = client.katto_db
 
