@@ -1,6 +1,12 @@
 # 🐾 Katto
 **Terminal Social Chat**
-
+```
+     /\_/\    
+    (⌐■_■)  < "Rush B."
+    /|___|\
+ █▄▀ ▄▀█ ▀█▀ ▀█▀ █▀█
+ █ █ █▀█  █   █  █▄█
+```
 Bringing people together, one message at a time. A modern, Discord-like chat application built entirely for the terminal using Textual.
 
 ## 📝 About
