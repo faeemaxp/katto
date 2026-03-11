@@ -225,11 +225,16 @@ Footer {
     color: #f8fafc;
 }
 
-.room-btn:focus {
+.room-btn:focus, .room-btn.active {
     background: #1e1b4b;
     color: #818cf8;
     text-style: bold;
     border-left: thick #6366f1;
+}
+
+.room-btn.has-unread {
+    color: #f8fafc;
+    text-style: bold;
 }
 
 .dm-btn {
@@ -247,7 +252,7 @@ Footer {
     color: #ec4899;
 }
 
-.dm-btn:focus {
+.dm-btn:focus, .dm-btn.active {
     background: #4c1d95;
     color: #f9a8d4;
     text-style: bold;
@@ -260,6 +265,50 @@ Footer {
     padding: 1;
     border-top: hkey #334155;
     background: #0b1120;
+}
+
+/* --- SIDEBAR FOOTER TAB BAR --- */
+#sidebar-footer {
+    dock: bottom;
+    height: 3;
+    background: #060d1a;
+    border-top: tall #6366f1;
+    layout: horizontal;
+}
+
+.footer-tab {
+    width: 1fr;
+    height: 100%;
+    background: #060d1a;
+    color: #64748b;
+    border: none;
+    text-style: bold;
+    content-align: center middle;
+}
+
+.footer-tab:hover {
+    background: #1e293b;
+    color: #818cf8;
+}
+
+.footer-tab:focus {
+    background: #1e1b4b;
+    color: #a5b4fc;
+}
+
+.footer-quit {
+    color: #7f1d1d;
+    border-left: tall #334155;
+}
+
+.footer-quit:hover {
+    background: #450a0a;
+    color: #fca5a5;
+}
+
+/* --- WS STATUS DOT --- (element removed from compose, rule kept for safety) */
+#ws-status-dot {
+    display: none;
 }
 
 #profile-btn {
@@ -287,25 +336,59 @@ Footer {
 
 #channel-header-container {
     dock: top;
-    height: 3;
-    background: #1e293b;
-    border-bottom: hkey #334155;
-    padding: 0 2;
+    height: 5;
+    background: #111827;
+    border-bottom: tall #6366f1;
+    padding: 0 3;
     layout: horizontal;
     align: left middle;
 }
 
 #channel-icon {
-    color: #6366f1;
+    color: #818cf8;
     text-style: bold;
-    margin-right: 1;
+    margin-right: 2;
     content-align: center middle;
+    width: auto;
+    height: auto;
+}
+
+#channel-info {
+    width: 1fr;
+    height: auto;
+    layout: vertical;
+    content-align: left middle;
 }
 
 #channel-name {
-    color: #f8fafc;
+    color: #f1f5f9;
     text-style: bold;
     content-align: left middle;
+    height: 2;
+}
+
+#channel-topic {
+    color: #64748b;
+    text-style: italic;
+    content-align: left middle;
+    height: 1;
+    width: 1fr;
+}
+
+#channel-header-actions {
+    width: auto;
+    height: 100%;
+    layout: horizontal;
+    align: right middle;
+    padding-right: 1;
+}
+
+#channel-online-count {
+    color: #34d399;
+    content-align: right middle;
+    margin-right: 2;
+    width: auto;
+    text-style: bold;
 }
 
 #chat-history {
@@ -321,7 +404,9 @@ Footer {
 }
 
 .msg-self {
-    color: #818cf8;
+    color: #a5b4fc;
+    background: #1e1b4b;
+    padding: 0 1;
     margin-bottom: 0;
 }
 
@@ -338,6 +423,29 @@ Footer {
 .msg-help {
     color: #10b981;
     margin-bottom: 0;
+}
+
+.msg-empty {
+    color: #475569;
+    text-style: italic;
+    content-align: center middle;
+    width: 100%;
+    margin-top: 2;
+    margin-bottom: 2;
+}
+
+.msg-emote {
+    color: #c084fc;
+    text-style: italic;
+    margin-bottom: 0;
+}
+
+.msg-timestamp {
+    color: #475569;
+    width: 100%;
+    content-align: center middle;
+    margin: 1 0;
+    text-style: italic;
 }
 
 #message-input {
@@ -483,6 +591,54 @@ Footer {
     margin-bottom: 1;
 }
 
+/* --- SIDEBAR PROFILE AREA --- */
+#sidebar-profile-area {
+    height: 6;
+    layout: horizontal;
+    align: left middle;
+    padding: 1 2;
+    background: #0b1120;
+    border-bottom: tall #6366f1;
+}
+
+#sidebar-user-info {
+    width: 1fr;
+    height: auto;
+    layout: vertical;
+    padding-left: 0;
+}
+
+#sidebar-user-btn {
+    background: transparent;
+    color: #f1f5f9;
+    border: none;
+    text-style: bold;
+    height: 2;
+    width: 100%;
+    content-align: left middle;
+    padding: 0;
+}
+
+#sidebar-user-btn:hover {
+    color: #818cf8;
+    background: transparent;
+}
+
+#ws-status-text {
+    color: #475569;
+    text-style: italic;
+    height: 1;
+    content-align: left middle;
+    padding-left: 0;
+}
+
+#sidebar-top-actions {
+    width: auto;
+    height: auto;
+    layout: horizontal;
+    align: right middle;
+}
+
 #other-profile-actions {
     height: auto;
     layout: horizontal;
@@ -552,7 +708,9 @@ Footer {
 
 #notifications-card {
     width: 60;
-    height: 16;
+    height: auto;
+    min-height: 6;
+    max-height: 20;
     border: round #334155;
     background: #1e293b;
     padding: 1 2;
@@ -573,6 +731,33 @@ Footer {
     width: 1fr;
     color: #f8fafc;
     content-align: left middle;
+}
+
+.notif-accept-btn {
+    background: #10b981;
+    color: #fff;
+    border: none;
+    min-width: 10;
+    margin-left: 1;
+    text-style: bold;
+}
+
+.notif-accept-btn:hover {
+    background: #059669;
+}
+
+.notif-decline-btn {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: none;
+    min-width: 10;
+    margin-left: 1;
+    text-style: bold;
+}
+
+.notif-decline-btn:hover {
+    background: #991b1b;
+    color: #fff;
 }
 
 .notification-empty {

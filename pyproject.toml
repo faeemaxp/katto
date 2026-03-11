@@ -1,7 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "katto"
 version = "0.1.0"
-description = "Add your description here"
+description = "Katto — Terminal Social Chat"
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "textual>=0.50",
+    "httpx>=0.27",
+    "websockets>=12",
+]
+
+[project.scripts]
+katto = "client.app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["client*"]
+
+[tool.setuptools.package-data]
+client = ["*.tcss"]

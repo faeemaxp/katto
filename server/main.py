@@ -182,10 +182,29 @@ async def update_profile(req: ProfileUpdate):
         
     return {"success": True, "message": "Profile updated successfully!"}
 
+@app.post("/friends/decline")
+async def decline_friend_request(req: FriendRequest):
+    result = await friends.delete_one({
+        "user1": req.to_user,
+        "user2": req.from_user,
+        "status": "pending"
+    })
+    if result.deleted_count == 0:
+        return {"success": False, "error": "No pending request found."}
+    return {"success": True, "message": "Friend request declined."}
+
+@app.get("/online")
+async def get_online():
+    users_online = get_online_users()
+    return {"success": True, "count": len(users_online), "users": users_online}
+
 # ==========================================
 # WEBSOCKET CHAT
 # ==========================================
-active_connections: set[WebSocket] = set()
+active_connections: dict[WebSocket, str] = {}  # ws -> username
+
+def get_online_users() -> list[str]:
+    return list(active_connections.values())
 
 async def broadcast(message: dict):
     """Safely sends a message to everyone, skipping dead connections."""
@@ -194,12 +213,12 @@ async def broadcast(message: dict):
         try:
             await connection.send_text(message_json)
         except Exception:
-            active_connections.discard(connection)
+            active_connections.pop(connection, None)
 
 @app.websocket("/ws/{username}")
 async def websocket_endpoint(websocket: WebSocket, username: str):
     await websocket.accept()
-    active_connections.add(websocket)
+    active_connections[websocket] = username
 
     await broadcast({"sender": "System", "content": f"{username} joined!", "room": "all"})
 
@@ -207,10 +226,21 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
         while True:
             data = await websocket.receive_text()
             message_data = json.loads(data)
-            
+
+            msg_type = message_data.get("type", "message")
             room = message_data.get("room", "#general")
             content = message_data.get("content", "")
-            
+
+            if msg_type == "typing":
+                # Broadcast typing event (don't save to DB)
+                await broadcast({
+                    "sender": "System",
+                    "type": "typing",
+                    "user": username,
+                    "room": room
+                })
+                continue
+
             # Save to database
             if content:
                 await messages.insert_one({
@@ -219,7 +249,7 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                     "content": content,
                     "timestamp": datetime.utcnow()
                 })
-            
+
             # Broadcast to everyone (clients filter by room)
             await broadcast({
                 "sender": username,
@@ -227,8 +257,8 @@ async def websocket_endpoint(websocket: WebSocket, username: str):
                 "room": room
             })
     except WebSocketDisconnect:
-        active_connections.discard(websocket)
+        active_connections.pop(websocket, None)
         await broadcast({"sender": "System", "content": f"{username} left.", "room": "all"})
     except Exception as e:
         print(f"Error with {username}: {e}")
-        active_connections.discard(websocket)
+        active_connections.pop(websocket, None)

@@ -58,14 +58,28 @@ HELP_TEXT = """[bold cyan]━━━ KATTO COMMANDS ━━━[/]
 [bold green]/help[/]                 Show this help
 [bold green]/join #room[/]           Switch chat room
 [bold green]/rooms[/]                List available rooms
-[bold green]/dm @user message[/]    Send a direct message
+[bold green]/dm @user[/]             Open a direct message
 [bold green]/friend req @user[/]    Send a friend request
 [bold green]/friend accept @user[/] Accept a friend request
 [bold green]/friends[/]              List your friends
-[bold green]/profile[/]              Show your profile
+[bold green]/profile[/]              View/edit your profile
 [bold green]/users[/]                List online users
+[bold green]/search <term>[/]        Search messages in this room
+[bold green]/me <action>[/]          Emote — e.g. /me waves
 [bold green]/clear[/]                Clear chat history
+[bold green]/logout[/]               Return to login screen
 [bold green]/quit[/]                 Exit Katto"""
+
+# ==========================================
+# ROOM TOPICS
+# ==========================================
+ROOM_TOPICS = {
+    "#general": "General discussion & off-topic chat",
+    "#random":  "Anything goes — memes, links, vibes",
+    "#coding":  "Dev talk, bugs, and caffeine",
+    "#music":   "Share tracks, artists & playlists",
+    "#gaming":  "GGs, clips, and game nights",
+}
 
 # ==========================================
 # DEFAULT ROOMS

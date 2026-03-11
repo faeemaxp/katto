@@ -11,7 +11,27 @@ import asyncio
 import urllib.parse
 from random import choice
 
-from ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS
+from datetime import datetime
+import os, json as _json
+from pathlib import Path
+from importlib.resources import files as _res_files
+from client.ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS, ROOM_TOPICS
+
+SESSION_FILE = Path.home() / ".katto_session.json"
+
+def load_session() -> dict:
+    try:
+        if SESSION_FILE.exists():
+            return _json.loads(SESSION_FILE.read_text())
+    except Exception:
+        pass
+    return {}
+
+def save_session(username: str, server: str) -> None:
+    try:
+        SESSION_FILE.write_text(_json.dumps({"username": username, "server": server}))
+    except Exception:
+        pass
 
 # Default server URL
 DEFAULT_SERVER = "127.0.0.1:8000"
@@ -53,6 +73,14 @@ class LoginScreen(Screen):
                         yield Button("Login", id="login-btn")
                         yield Button("Sign Up", id="signup-btn")
                     yield Label("", id="login-status")
+                    yield Label("", id="session-hint")
+
+    def on_mount(self) -> None:
+        session = load_session()
+        if session.get("username"):
+            self.query_one("#username-input").value = session["username"]
+            self.query_one("#session-hint").update("[dim]⚡ Session restored[/]")
+            self.query_one("#password-input").focus()
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         custom_input = self.query_one("#custom-server-input")
@@ -98,6 +126,7 @@ class LoginScreen(Screen):
 
             if data.get("success"):
                 self._set_status(data.get("message", "Success!"))
+                save_session(username, server)
                 self.set_timer(0.5, lambda: self.app.push_screen(
                     DashboardScreen(username=username, server_url=server)
                 ))
@@ -118,10 +147,11 @@ class Sidebar(Widget):
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="sidebar-profile-area"):
-            yield Button(f" @{self.username}", id="sidebar-user-btn")
+            with Vertical(id="sidebar-user-info"):
+                yield Button(f" @{self.username}", id="sidebar-user-btn")
+                yield Label("● Connecting...", id="ws-status-text")
             with Horizontal(id="sidebar-top-actions"):
                 yield Button("🔔", id="notifications-btn", classes="icon-btn")
-                yield Button("⚙", id="profile-btn", classes="icon-btn")
 
         with VerticalScroll(id="sidebar-scroll-area"):
             yield Label("FRIENDS & DMs", classes="sidebar-section-title")
@@ -131,9 +161,10 @@ class Sidebar(Widget):
             yield Label("ROOMS", classes="sidebar-section-title")
             for room in DEFAULT_ROOMS:
                 yield Button(f"  {room}", classes="room-btn", id=f"room-{room[1:]}")
-            
-        with Vertical(id="sidebar-actions"):
-            yield Button("✕ Quit", id="quit-btn")
+
+        with Horizontal(id="sidebar-footer"):
+            yield Button("⚙ Settings", id="settings-tab-btn", classes="footer-tab")
+            yield Button("✕ Quit",    id="quit-btn",          classes="footer-tab footer-quit")
 
     async def on_mount(self) -> None:
         url = f"http://{self.server_url}/profile/{self.username}"
@@ -159,6 +190,8 @@ class ProfileScreen(Screen):
         super().__init__(**kwargs)
         self.username = username
         self.server_url = server_url
+
+    BINDINGS = [("escape", "pop_screen", "Back")]
 
     def compose(self) -> ComposeResult:
         with Center():
@@ -340,17 +373,17 @@ class NotificationsScreen(Screen):
                 if data.get("success"):
                     pending = data.get("pending", [])
                     if not pending:
-                        card.mount(Label("No new notifications.", classes="notification-empty"))
+                        await card.mount(Label("No new notifications.", classes="notification-empty"))
                     for req in pending:
-                        with Horizontal(classes="notification-item") as row:
-                            row.mount(Label(f"Friend Request: @{req}", classes="notification-text"))
-                            acc_btn = Button("Accept", id=f"accept-{req}", variant="success")
-                            row.mount(acc_btn)
-                            card.mount(row)
+                        row = Horizontal(classes="notification-item")
+                        await card.mount(row)  # mount to DOM first
+                        await row.mount(Label(f"Friend Request: @{req}", classes="notification-text"))
+                        await row.mount(Button("Accept",  id=f"accept-{req}",  classes="notif-accept-btn"))
+                        await row.mount(Button("Decline", id=f"decline-{req}", classes="notif-decline-btn"))
                 else:
-                    card.mount(Label("Failed to load notifications."))
-        except Exception:
-            card.mount(Label("Error connecting to server."))
+                    await card.mount(Label("Failed to load notifications.", classes="notification-empty"))
+        except Exception as e:
+            await card.mount(Label(f"Error: {e}", classes="notification-empty"))
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "close-notifications-btn":
@@ -365,10 +398,21 @@ class NotificationsScreen(Screen):
                         "to_user": target
                     })
                     if resp.json().get("success"):
-                        await self.load_notifications() # reload
-                        # Notify dashboard to update sidebar
+                        await self.load_notifications()
                         dash = self.app.query_one(DashboardScreen)
                         dash.run_worker(dash.update_sidebar_dms())
+            except Exception:
+                pass
+        elif event.button.id and event.button.id.startswith("decline-"):
+            target = event.button.id[8:]
+            url = f"http://{self.server_url}/friends/decline"
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(url, json={
+                        "from_user": self.username,
+                        "to_user": target
+                    })
+                await self.load_notifications()
             except Exception:
                 pass
 
@@ -382,6 +426,15 @@ class DashboardScreen(Screen):
         self.server_url = server_url
         self.current_room = "#general"
         self.websocket = None
+        self.last_msg_time = None
+        self.unread: dict = {}  # room -> unread count
+        self.typing_timer = None  # handle debounce for typing events
+
+    BINDINGS = [("ctrl+b", "toggle_sidebar", "Toggle Sidebar")]
+
+    def action_toggle_sidebar(self) -> None:
+        sidebar = self.query_one("#sidebar")
+        sidebar.display = not sidebar.display
 
     def compose(self) -> ComposeResult:
         with Horizontal(id="dashboard"):
@@ -389,13 +442,19 @@ class DashboardScreen(Screen):
             with Vertical(id="main-content"):
                 with Horizontal(id="channel-header-container"):
                     yield Label("💬", id="channel-icon")
-                    yield Label(f"{self.current_room}", id="channel-name")
+                    with Vertical(id="channel-info"):
+                        yield Label(f"{self.current_room}", id="channel-name")
+                        yield Label("", id="channel-topic")
+                    with Horizontal(id="channel-header-actions"):
+                        yield Label("", id="channel-online-count")
+                        yield Button("🔍", id="search-btn", classes="icon-btn")
+                        yield Button("👥", id="members-btn", classes="icon-btn")
                 with VerticalScroll(id="chat-history"):
                     pass
-                
+                yield Label("", id="typing-indicator")
                 # Autocomplete commands
-                commands = ["/help", "/rooms", "/profile", "/users", "/clear", "/quit", 
-                            "/friend req @", "/friend accept @", "/friends", "/dm @"]
+                commands = ["/help", "/rooms", "/profile", "/users", "/clear", "/quit",
+                            "/logout", "/me ", "/search ", "/friend req @", "/friend accept @", "/friends", "/dm @"]
                 room_cmds = [f"/join {r}" for r in DEFAULT_ROOMS]
                 
                 yield Input(
@@ -406,43 +465,72 @@ class DashboardScreen(Screen):
 
     async def on_mount(self) -> None:
         self.query_one("#message-input").focus()
+        topic = ROOM_TOPICS.get(self.current_room, "")
+        self.query_one("#channel-topic").update(topic)
         self._post_system(f"Welcome to [bold cyan]{self.current_room}[/], [bold]{self.username}[/]!")
         self._post_system("Type [bold green]/help[/] to see available commands.")
-        
+
         # Connect to WebSocket
         self.run_worker(self._ws_listener())
-        # Fetch initial room history
+        # Fetch initial room history and DM list
         self.run_worker(self._fetch_history(self.current_room))
         self.run_worker(self.update_sidebar_dms())
+        # Fetch initial online count
+        self.run_worker(self._refresh_online_count())
+
+    async def _refresh_online_count(self) -> None:
+        data = await self._api_get("/online")
+        if data.get("success"):
+            count = data.get("count", 0)
+            try:
+                self.query_one("#channel-online-count").update(f"─ {count} online")
+            except Exception:
+                pass
 
     async def update_sidebar_dms(self) -> None:
         data = await self._api_get(f"/friends/{self.username}")
         if data.get("success"):
             friends_list = data.get("friends", [])
             pending = data.get("pending", [])
-            
+
             dm_container = self.query_one("#sidebar-dms")
             await dm_container.remove_children()
-            
+
             for friend in friends_list:
-                dm_container.mount(Button(f"  @{friend}", classes="dm-btn", id=f"dm-{friend}"))
-            
-            # Show a tiny indicator on the notifications button if pending
-            notif_btn = self.query_one("#notifications-btn")
-            if pending:
-                notif_btn.label = f"🔔 ({len(pending)})"
-                notif_btn.styles.color = "#ec4899"
-            else:
-                notif_btn.label = "🔔"
-                notif_btn.styles.color = "#f8fafc"
-                
+                await dm_container.mount(Button(f"  @{friend}", classes="dm-btn", id=f"dm-{friend}"))
+
+            if not friends_list:
+                await dm_container.mount(Label("  No friends yet.", classes="sidebar-section-title"))
+
+            # Update bell badge
+            try:
+                notif_btn = self.query_one("#notifications-btn")
+                if pending:
+                    notif_btn.label = f"\ud83d\udd14 {len(pending)}"
+                    notif_btn.styles.color = "#ec4899"
+                else:
+                    notif_btn.label = "\ud83d\udd14"
+                    notif_btn.styles.color = "#94a3b8"
+            except Exception:
+                pass
+
     def open_dm(self, target: str) -> None:
         room_name = f"@{target}"
         self.current_room = room_name
         self.query_one("#channel-icon").update("👤")
-        self.query_one("#channel-name").update(target)
+        self.query_one("#channel-name").update(f"@{target}")
+        self.query_one("#channel-topic").update("Direct Message")
+        self.query_one("#channel-online-count").update("")
         self.query_one("#message-input").placeholder = f"Message @{target} · Type /help for commands"
         
+        # Highlight in sidebar
+        for btn in self.query("Sidebar .dm-btn"):
+            btn.remove_class("active")
+        try:
+            self.query_one(f"#dm-{target}").add_class("active")
+        except:
+            pass
+
         chat = self.query_one("#chat-history")
         chat.remove_children()
         
@@ -466,7 +554,8 @@ class DashboardScreen(Screen):
                 data = resp.json()
                 if data.get("success"):
                     msgs = data.get("messages", [])
-                    # Optionally clear and insert
+                    if not msgs:
+                        self._post_empty_state()
                     for m in msgs:
                         sender = m.get("sender", "Unknown")
                         content = m.get("content", "")
@@ -476,6 +565,13 @@ class DashboardScreen(Screen):
         except Exception as e:
             self._post_system(f"Failed to fetch history: {e}")
 
+    def _post_empty_state(self) -> None:
+        chat = self.query_one("#chat-history")
+        lbl = Label("No messages yet — say hello! 👋")
+        lbl.add_class("msg-empty")
+        chat.mount(lbl)
+        chat.scroll_end(animate=False)
+
     # --- WebSocket ---
     async def _ws_listener(self) -> None:
         ws_url = f"ws://{self.server_url}/ws/{self.username}"
@@ -483,28 +579,100 @@ class DashboardScreen(Screen):
             async with websockets.connect(ws_url) as ws:
                 self.websocket = ws
                 self._post_system("Connected to server!")
+                try:
+                    self.query_one("#ws-status-text").update("● Online")
+                    self.query_one("#ws-status-text").styles.color = "#10b981"
+                except Exception:
+                    pass
+                self.run_worker(self._refresh_online_count())
                 while True:
                     raw = await ws.recv()
                     data = json.loads(raw)
+                    msg_type = data.get("type", "message")
                     sender = data.get("sender", "Unknown")
                     content = data.get("content", "")
                     room = data.get("room", "")
-                    
+
+                    if msg_type == "typing":
+                        typer = data.get("user", "")
+                        if typer and typer != self.username and room == self.current_room:
+                            try:
+                                self.query_one("#typing-indicator").update(
+                                    f"[dim italic]• {typer} is typing...[/]"
+                                )
+                                # Clear after 3 seconds
+                                if self.typing_timer:
+                                    self.typing_timer.stop()
+                                self.typing_timer = self.set_timer(
+                                    3,
+                                    lambda: self.query_one("#typing-indicator").update("")
+                                )
+                            except Exception:
+                                pass
+                        continue
+
                     if sender == "System":
                         self._post_system(content)
                     elif room == self.current_room or room == "all":
                         css = "msg-self" if sender == self.username else "msg-other"
-                        self._post_msg(f"[bold magenta]{sender}[/]  {content}", css)
+                        self._post_msg(f"[bold magenta]{sender}[/]  {content}", css, sender=sender)
+                    elif room and room != self.current_room:
+                        # Increment unread badge for the other room
+                        self.unread[room] = self.unread.get(room, 0) + 1
+                        self._update_room_badge(room)
         except Exception as e:
             self._post_msg(f"Connection error: {e}", "msg-error")
+            try:
+                self.query_one("#ws-status-text").update("● Offline")
+                self.query_one("#ws-status-text").styles.color = "#ef4444"
+            except Exception:
+                pass
+
+    def _update_room_badge(self, room: str) -> None:
+        """Refresh the sidebar label for a room to show/clear unread count."""
+        room_id = f"room-{room[1:]}"
+        count = self.unread.get(room, 0)
+        try:
+            btn = self.query_one(f"#{room_id}")
+            if count > 0:
+                # superscript-style badge using unicode circled numbers
+                badges = ["", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"]
+                badge = badges[min(count, 10)]
+                btn.label = f"  {room}  {badge}"
+                btn.add_class("has-unread")
+            else:
+                btn.label = f"  {room}"
+                btn.remove_class("has-unread")
+        except Exception:
+            pass
 
     # --- Message helpers ---
-    def _post_msg(self, text: str, css_class: str = "msg-other") -> None:
+    def _post_msg(self, text: str, css_class: str = "msg-other", sender: str = "") -> None:
         chat = self.query_one("#chat-history")
-        lbl = Label(text)
-        lbl.add_class(css_class)
+        now = datetime.now()
+        
+        # Show timestamp if > 2 minutes since last message
+        if not self.last_msg_time or (now - self.last_msg_time).total_seconds() > 120:
+            ts_label = Label(now.strftime("%H:%M"), classes="msg-timestamp")
+            chat.mount(ts_label)
+        
+        self.last_msg_time = now
+        
+        lbl = Label(text, classes=css_class)
         chat.mount(lbl)
         chat.scroll_end(animate=False)
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        """Send typing indicator over WS when user is typing a message (not a command)."""
+        if event.input.id != "message-input":
+            return
+        val = event.value
+        if val and not val.startswith("/") and self.websocket:
+            try:
+                payload = json.dumps({"type": "typing", "room": self.current_room})
+                self.run_worker(self.websocket.send(payload))
+            except Exception:
+                pass
 
     def _post_system(self, text: str) -> None:
         self._post_msg(f"[dim]⟫[/] {text}", "msg-system")
@@ -514,10 +682,20 @@ class DashboardScreen(Screen):
             self._post_msg(line, "msg-help")
 
     # --- API Wrappers ---
-    async def _api_post(self, endpoint: str, payload: dict) -> None:
+    async def _api_post(self, endpoint: str, json_data: dict) -> dict:
         url = f"http://{self.server_url}{endpoint}"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(url, json=json_data)
+                return resp.json()
+        except Exception as e:
+            # We don't want to spam the UI with fetch errors silently, but we can log them internally
+            return {}
+
+    async def _api_post_with_msg(self, endpoint: str, payload: dict) -> None:
+        url = f"http://{self.server_url}{endpoint}"
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(url, json=payload)
                 data = resp.json()
                 if data.get("success"):
@@ -530,10 +708,10 @@ class DashboardScreen(Screen):
     async def _api_get(self, endpoint: str) -> dict:
         url = f"http://{self.server_url}{endpoint}"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 return resp.json()
-        except:
+        except Exception:
              return {}
 
     # --- Input handling ---
@@ -574,13 +752,23 @@ class DashboardScreen(Screen):
                 self.current_room = room
                 self.query_one("#channel-icon").update("💬")
                 self.query_one("#channel-name").update(room)
+                self.query_one("#channel-topic").update(ROOM_TOPICS.get(room, ""))
                 self.query_one("#message-input").placeholder = (
                     f"Message {room} · Type /help for commands"
                 )
+
+                # Clear unread badge for this room
+                self.unread[room] = 0
+                self._update_room_badge(room)
+
+                # Highlight in sidebar
+                for btn in self.query("Sidebar .room-btn"):
+                    btn.remove_class("active")
+                self.query_one(f"#room-{room[1:]}").add_class("active")
+
                 chat = self.query_one("#chat-history")
                 await chat.remove_children()
                 self._post_system(f"Switched to [bold cyan]{room}[/]")
-                # Fetch history for new room
                 self.run_worker(self._fetch_history(room))
             else:
                 self._post_msg(f"Room '{room}' not found. Use /rooms to list.", "msg-error")
@@ -598,9 +786,9 @@ class DashboardScreen(Screen):
             target = parts[2].lstrip("@")
             
             if subcmd == "req" or subcmd == "add":
-                await self._api_post("/friends/request", {"from_user": self.username, "to_user": target})
+                await self._api_post_with_msg("/friends/request", {"from_user": self.username, "to_user": target})
             elif subcmd == "accept":
-                await self._api_post("/friends/accept", {"from_user": self.username, "to_user": target})
+                await self._api_post_with_msg("/friends/accept", {"from_user": self.username, "to_user": target})
                 self.run_worker(self.update_sidebar_dms())
             else:
                  self._post_msg(f"Unknown friend command. Use /friend req @user or /friend accept @user", "msg-error")
@@ -628,6 +816,37 @@ class DashboardScreen(Screen):
             await chat.remove_children()
             self._post_system("Chat cleared.")
 
+        elif cmd == "/me" and len(parts) >= 2:
+            action = " ".join(parts[1:])
+            if self.websocket:
+                emote_text = f"* {self.username} {action}"
+                payload = json.dumps({"content": emote_text, "room": self.current_room})
+                try:
+                    await self.websocket.send(payload)
+                except Exception as e:
+                    self._post_msg(f"Send failed: {e}", "msg-error")
+            else:
+                self._post_msg("Not connected to server.", "msg-error")
+
+        elif cmd == "/search":
+            if len(parts) < 2:
+                self._post_system("Usage: /search <term>")
+            else:
+                term = " ".join(parts[1:]).lower()
+                chat = self.query_one("#chat-history")
+                count = 0
+                for lbl in chat.query(Label):
+                    text = str(lbl.renderable).lower()
+                    if term in text:
+                        lbl.styles.display = "block"
+                        count += 1
+                    else:
+                        lbl.styles.display = "none"
+                self._post_system(f"[bold]Search:[/] {count} result(s) for '[italic]{term}[/]'. Type /clear to reset.")
+
+        elif cmd == "/logout":
+            self.app.pop_screen()
+
         elif cmd == "/quit":
             self.app.exit()
 
@@ -642,14 +861,33 @@ class DashboardScreen(Screen):
         elif btn.id and btn.id.startswith("dm-"):
             target = btn.id[3:]
             self.open_dm(target)
-        elif btn.id == "profile-btn":
+        elif btn.id == "settings-tab-btn":
             self.app.push_screen(ProfileScreen(username=self.username, server_url=self.server_url))
         elif btn.id == "sidebar-user-btn":
             self.app.push_screen(UserProfileScreen(target_username=self.username, my_username=self.username, server_url=self.server_url))
         elif btn.id == "notifications-btn":
             self.app.push_screen(NotificationsScreen(username=self.username, server_url=self.server_url))
+        elif btn.id == "search-btn":
+            self._post_system("[bold]Search:[/] Type /search <term> to filter messages.")
+            self.query_one("#message-input").value = "/search "
+            self.query_one("#message-input").focus()
+        elif btn.id == "members-btn":
+            self.run_worker(self._show_online_members())
         elif btn.id == "quit-btn":
             self.app.exit()
+
+    async def _show_online_members(self) -> None:
+        data = await self._api_get("/online")
+        if data.get("success"):
+            users = data.get("users", [])
+            count  = data.get("count", 0)
+            self._post_system(f"[bold]👥 {count} online:[/] {', '.join(users) if users else 'None'}")
+            try:
+                self.query_one("#channel-online-count").update(f"─ {count} online")
+            except Exception:
+                pass
+        else:
+            self._post_system("Could not fetch online members.")
 
 
 # ==========================================
@@ -659,12 +897,21 @@ class Katto(App):
     """Katto — Terminal Social Chat"""
     TITLE = "Katto"
     SUB_TITLE = "Terminal Social Chat"
-    CSS_PATH = "chat_ui.tcss"
+    # Works both when running from source (python app.py)
+    # and when installed as a package (pipx / pip install)
+    try:
+        CSS_PATH = str(_res_files("client") / "chat_ui.tcss")
+    except Exception:
+        CSS_PATH = str(Path(__file__).parent / "chat_ui.tcss")
 
     def on_mount(self) -> None:
         self.push_screen(LoginScreen())
 
 
+def main() -> None:
+    """Console script entry point — called by the `katto` command."""
+    Katto().run()
+
+
 if __name__ == "__main__":
-    app = Katto()
-    app.run()
+    main()
