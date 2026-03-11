@@ -8,8 +8,17 @@ import json
 import httpx
 import websockets
 import asyncio
+import re
 import urllib.parse
 from random import choice
+
+def _get_http_url(server: str, endpoint: str) -> str:
+    scheme = "http" if "localhost" in server or re.match(r"^\d{1,3}\.", server) else "https"
+    return f"{scheme}://{server}/{endpoint.lstrip('/')}"
+
+def _get_ws_url(server: str, endpoint: str) -> str:
+    scheme = "ws" if "localhost" in server or re.match(r"^\d{1,3}\.", server) else "wss"
+    return f"{scheme}://{server}/{endpoint.lstrip('/')}"
 
 from datetime import datetime
 import os, json as _json
@@ -21,8 +30,6 @@ try:
 except ImportError:
     # Works when run directly inside the client folder (python app.py)
     from ui_assets import KATTO_LOGO, KATTO_MINI, HELP_TEXT, DEFAULT_ROOMS, ROOM_TOPICS
-
-SESSION_FILE = Path.home() / ".katto_session.json"
 
 def load_session() -> dict:
     try:
@@ -119,10 +126,10 @@ class LoginScreen(Screen):
             return
 
         endpoint = "login" if event.button.id == "login-btn" else "signup"
-        url = f"http://{server}/{endpoint}"
+        url = _get_http_url(server, endpoint)
 
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(url, json={
                     "username": username,
                     "password": password
@@ -137,6 +144,8 @@ class LoginScreen(Screen):
                 ))
             else:
                 self._set_status(data.get("error", "Something went wrong."), error=True)
+        except json.JSONDecodeError:
+            self._set_status("Server returned an invalid response (might be down).", error=True)
         except Exception as e:
             self._set_status(f"Connection failed: {e}", error=True)
 
@@ -172,10 +181,10 @@ class Sidebar(Widget):
             yield Button("✕ Quit",    id="quit-btn",          classes="footer-tab footer-quit")
 
     async def on_mount(self) -> None:
-        url = f"http://{self.server_url}/profile/{self.username}"
+        url = _get_http_url(self.server_url, f"profile/{self.username}")
         avatar_icon = "█▄▀"
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 data = resp.json()
                 if data.get("success"):
@@ -223,9 +232,9 @@ class ProfileScreen(Screen):
 
     async def on_mount(self) -> None:
         # Fetch current profile to populate bio
-        url = f"http://{self.server_url}/profile/{self.username}"
+        url = _get_http_url(self.server_url, f"profile/{self.username}")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 data = resp.json()
                 if data.get("success"):
@@ -246,9 +255,9 @@ class ProfileScreen(Screen):
             avatar_map = {0: "Classic", 1: "Cat", 2: "Wizard"}
             avatar = avatar_map.get(radio.pressed_index, "Classic")
 
-            url = f"http://{self.server_url}/profile/update"
+            url = _get_http_url(self.server_url, "profile/update")
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.post(url, json={
                         "username": self.username,
                         "bio": bio if bio else None,
@@ -299,9 +308,9 @@ class UserProfileScreen(Screen):
                     yield Label("", id="other-profile-status")
 
     async def on_mount(self) -> None:
-        url = f"http://{self.server_url}/profile/{self.target_username}"
+        url = _get_http_url(self.server_url, f"profile/{self.target_username}")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 data = resp.json()
                 if data.get("success"):
@@ -323,9 +332,9 @@ class UserProfileScreen(Screen):
         if event.button.id == "close-profile-btn":
             self.app.pop_screen()
         elif event.button.id == "add-friend-btn":
-            url = f"http://{self.server_url}/friends/request"
+            url = _get_http_url(self.server_url, "friends/request")
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.post(url, json={
                         "from_user": self.my_username,
                         "to_user": self.target_username
@@ -370,9 +379,9 @@ class NotificationsScreen(Screen):
         card = self.query_one("#notifications-card")
         await card.remove_children()
 
-        url = f"http://{self.server_url}/friends/{self.username}"
+        url = _get_http_url(self.server_url, f"friends/{self.username}")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 data = resp.json()
                 if data.get("success"):
@@ -395,9 +404,9 @@ class NotificationsScreen(Screen):
             self.app.pop_screen()
         elif event.button.id and event.button.id.startswith("accept-"):
             target = event.button.id[7:]
-            url = f"http://{self.server_url}/friends/accept"
+            url = _get_http_url(self.server_url, "friends/accept")
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(timeout=5.0) as client:
                     resp = await client.post(url, json={
                         "from_user": self.username,
                         "to_user": target
@@ -410,7 +419,7 @@ class NotificationsScreen(Screen):
                 pass
         elif event.button.id and event.button.id.startswith("decline-"):
             target = event.button.id[8:]
-            url = f"http://{self.server_url}/friends/decline"
+            url = _get_http_url(self.server_url, "friends/decline")
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
                     await client.post(url, json={
@@ -549,9 +558,9 @@ class DashboardScreen(Screen):
 
     async def _fetch_history(self, room: str) -> None:
         encoded_room = urllib.parse.quote(room)
-        url = f"http://{self.server_url}/messages/{encoded_room}"
+        url = _get_http_url(self.server_url, f"messages/{encoded_room}")
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 if resp.status_code != 200:
                     self._post_system(f"Failed to fetch history: Server returned {resp.status_code}")
@@ -579,7 +588,7 @@ class DashboardScreen(Screen):
 
     # --- WebSocket ---
     async def _ws_listener(self) -> None:
-        ws_url = f"ws://{self.server_url}/ws/{self.username}"
+        ws_url = _get_ws_url(self.server_url, f"ws/{self.username}")
         try:
             async with websockets.connect(ws_url) as ws:
                 self.websocket = ws
@@ -688,7 +697,7 @@ class DashboardScreen(Screen):
 
     # --- API Wrappers ---
     async def _api_post(self, endpoint: str, json_data: dict) -> dict:
-        url = f"http://{self.server_url}{endpoint}"
+        url = _get_http_url(self.server_url, endpoint)
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(url, json=json_data)
@@ -698,7 +707,7 @@ class DashboardScreen(Screen):
             return {}
 
     async def _api_post_with_msg(self, endpoint: str, payload: dict) -> None:
-        url = f"http://{self.server_url}{endpoint}"
+        url = _get_http_url(self.server_url, endpoint)
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.post(url, json=payload)
@@ -711,7 +720,7 @@ class DashboardScreen(Screen):
              self._post_msg(f"API HTTP Error: {e}", "msg-error")
 
     async def _api_get(self, endpoint: str) -> dict:
-        url = f"http://{self.server_url}{endpoint}"
+        url = _get_http_url(self.server_url, endpoint)
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
@@ -902,6 +911,10 @@ class Katto(App):
     """Katto — Terminal Social Chat"""
     TITLE = "Katto"
     SUB_TITLE = "Terminal Social Chat"
+    BINDINGS = [
+        ("ctrl+q", "quit", "Quit"),
+        ("ctrl+c", "quit", "Quit"),
+    ]
     # Works both when running from source (python app.py)
     # and when installed as a package (pipx / pip install)
     try:
