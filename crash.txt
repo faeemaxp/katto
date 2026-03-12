@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "G:\code space\python codes\python project\katto\client\app.py", line 2, in <module>
-    from textual import work, ComposeResult
-ImportError: cannot import name 'ComposeResult' from 'textual' (C:\Users\faeem\AppData\Local\Programs\Python\Python314\Lib\site-packages\textual\__init__.py)

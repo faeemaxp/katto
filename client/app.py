@@ -1,5 +1,5 @@
 from textual.app import App, ComposeResult
-from textual import work
+from textual import work, log
 from textual.screen import Screen
 from textual.containers import Vertical, Horizontal, VerticalScroll, Center, Middle
 from textual.widgets import Input, Label, Button, RadioButton, RadioSet, Static
@@ -269,6 +269,10 @@ class ProfileScreen(Screen):
             return
 
         if event.button.id == "save-profile-btn":
+            if event.button.disabled:
+                return  # already saving, prevent double-submit
+            # Disable button immediately to prevent double-click
+            event.button.disabled = True
             bio = self.query_one("#profile-bio").value.strip()
             password = self.query_one("#profile-password").value.strip()
             radio = self.query_one("#avatar-radio-set", RadioSet)
@@ -289,15 +293,45 @@ class ProfileScreen(Screen):
                 })
                 data = resp.json()
 
-            status = self.query_one("#profile-status")
+            if not self.is_attached:
+                return  # screen already popped, nothing to update
+
+            try:
+                status = self.query_one("#profile-status")
+            except Exception:
+                return  # widget gone, bail out
+
             if data.get("success"):
-                status.update("Profile saved!")
+                status.update("✓ Profile saved!")
                 status.styles.color = "#3fb950"
-                self.set_timer(1.0, lambda: self.app.pop_screen())
+                # Disable save button to prevent double-submit
+                try:
+                    self.query_one("#save-profile-btn").disabled = True
+                except Exception:
+                    pass
+                # Pop back after a short delay; use a flag so we only do it once
+                def _do_pop():
+                    if not self.is_attached:
+                        return
+                    # Refresh sidebar avatar on the dashboard behind us
+                    try:
+                        sidebar = self.app.query_one(Sidebar)
+                        sidebar._load_avatar()
+                    except Exception:
+                        pass
+                    self.app.pop_screen()
+                self.set_timer(1.0, _do_pop)
             else:
                 status.update(data.get("error", "Failed."))
                 status.styles.color = "#f85149"
+                # Re-enable save button so user can retry
+                try:
+                    self.query_one("#save-profile-btn").disabled = False
+                except Exception:
+                    pass
         except Exception as e:
+            if not self.is_attached:
+                return
             try:
                 status = self.query_one("#profile-status")
                 status.update(f"Error: {e}")
@@ -426,31 +460,43 @@ class NotificationsScreen(Screen):
 
     @work
     async def load_notifications(self) -> None:
-        card = self.query_one("#notifications-card")
-        await card.remove_children()
-
         url = _get_http_url(self.server_url, f"friends/{self.username}")
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
                 data = resp.json()
-                if data.get("success"):
-                    pending = data.get("pending", [])
-                    if not pending:
-                        await card.mount(Label("No new notifications.", classes="notification-empty"))
-                    for req in pending:
-                        row = Horizontal(classes="notification-item")
-                        await card.mount(row)  # mount to DOM first
-                        await row.mount(Label(f"Friend Request: @{req}", classes="notification-text"))
-                        await row.mount(Button("Accept",  id=f"accept-{req}",  classes="notif-accept-btn"))
-                        await row.mount(Button("Decline", id=f"decline-{req}", classes="notif-decline-btn"))
-                else:
-                    await card.mount(Label("Failed to load notifications.", classes="notification-empty"))
         except Exception as e:
-            try:
-                await card.mount(Label(f"Error: {e}", classes="notification-empty"))
-            except Exception:
-                pass
+            data = {}
+            error_msg = str(e)
+        else:
+            error_msg = None
+
+        # All DOM mutations happen synchronously after the async fetch
+        if not self.is_attached:
+            return
+        try:
+            card = self.query_one("#notifications-card")
+        except Exception:
+            return
+
+        card.remove_children()
+
+        if error_msg:
+            card.mount(Label(f"Error: {error_msg}", classes="notification-empty"))
+            return
+
+        if data.get("success"):
+            pending = data.get("pending", [])
+            if not pending:
+                card.mount(Label("No new notifications.", classes="notification-empty"))
+            for req in pending:
+                row = Horizontal(classes="notification-item")
+                row.mount(Label(f"Friend Request: @{req}", classes="notification-text"))
+                row.mount(Button("Accept",  id=f"accept-{req}",  classes="notif-accept-btn"))
+                row.mount(Button("Decline", id=f"decline-{req}", classes="notif-decline-btn"))
+                card.mount(row)
+        else:
+            card.mount(Label("Failed to load notifications.", classes="notification-empty"))
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "close-notifications-btn":
@@ -507,6 +553,7 @@ class DashboardScreen(Screen):
         self.last_msg_time = None
         self.unread: dict = {}  # room -> unread count
         self.typing_timer = None  # handle debounce for typing events
+        self._ws_running = False  # flag to stop WS listener cleanly
 
     BINDINGS = [("ctrl+b", "toggle_sidebar", "Toggle Sidebar")]
 
@@ -568,31 +615,43 @@ class DashboardScreen(Screen):
 
     @work
     async def update_sidebar_dms(self) -> None:
+        log("Dashboard: update_sidebar_dms worker started")
+        # Fetch data asynchronously first — no DOM access here
         data = await self._api_get(f"/friends/{self.username}")
-        if data.get("success"):
-            friends_list = data.get("friends", [])
-            pending = data.get("pending", [])
+        log(f"Dashboard: Sidebar data received success={data.get('success')}")
+        if not data.get("success"):
+            return
+        if not self.is_attached:
+            return
 
+        friends_list = data.get("friends", [])
+        pending = data.get("pending", [])
+
+        # All DOM mutations are synchronous (non-awaited) — safe in @work
+        try:
             dm_container = self.query_one("#sidebar-dms")
-            await dm_container.remove_children()
+        except Exception:
+            return
 
+        dm_container.remove_children()
+
+        if friends_list:
             for friend in friends_list:
-                await dm_container.mount(Button(f"  @{friend}", classes="dm-btn", id=f"dm-{friend}"))
+                dm_container.mount(Button(f"  @{friend}", classes="dm-btn", id=f"dm-{friend}"))
+        else:
+            dm_container.mount(Label("  No friends yet.", classes="sidebar-section-title"))
 
-            if not friends_list:
-                await dm_container.mount(Label("  No friends yet.", classes="sidebar-section-title"))
-
-            # Update bell badge
-            try:
-                notif_btn = self.query_one("#notifications-btn")
-                if pending:
-                    notif_btn.label = f"\ud83d\udd14 {len(pending)}"
-                    notif_btn.styles.color = "#ec4899"
-                else:
-                    notif_btn.label = "\ud83d\udd14"
-                    notif_btn.styles.color = "#94a3b8"
-            except Exception:
-                pass
+        # Update bell badge
+        try:
+            notif_btn = self.query_one("#notifications-btn")
+            if pending:
+                notif_btn.label = f"\ud83d\udd14 {len(pending)}"
+                notif_btn.styles.color = "#ec4899"
+            else:
+                notif_btn.label = "\ud83d\udd14"
+                notif_btn.styles.color = "#94a3b8"
+        except Exception:
+            pass
 
     def open_dm(self, target: str) -> None:
         room_name = f"@{target}"
@@ -624,11 +683,13 @@ class DashboardScreen(Screen):
 
     @work
     async def _fetch_history(self, room: str) -> None:
+        log(f"Dashboard: fetching history for {room}")
         encoded_room = urllib.parse.quote(room)
         url = _get_http_url(self.server_url, f"messages/{encoded_room}")
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url)
+                log(f"Dashboard: history status {resp.status_code}")
                 if resp.status_code != 200:
                     self._post_system(f"Failed to fetch history: Server returned {resp.status_code}")
                     return
@@ -656,10 +717,15 @@ class DashboardScreen(Screen):
     # --- WebSocket ---
     @work
     async def _ws_listener(self) -> None:
+        self._ws_running = True
         ws_url = _get_ws_url(self.server_url, f"ws/{self.username}")
+        log(f"WS: Attempting connection to {ws_url}")
         try:
-            async with websockets.connect(ws_url) as ws:
+            # Disable ping_interval and ping_timeout. Textual's async worker loop doesn't 
+            # always yield exactly when the websockets background ping needs it, causing a crash.
+            async with websockets.connect(ws_url, ping_interval=None, ping_timeout=None) as ws:
                 self.websocket = ws
+                log("WS: Connected successfully")
                 self._post_system("Connected to server!")
                 try:
                     self.query_one("#ws-status-text").update("● Online")
@@ -667,8 +733,16 @@ class DashboardScreen(Screen):
                 except Exception:
                     pass
                 self._refresh_online_count()
-                while True:
-                    raw = await ws.recv()
+                while self._ws_running:
+                    try:
+                        raw = await asyncio.wait_for(ws.recv(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        # No message — yield control to event loop and check flag
+                        await asyncio.sleep(0)
+                        continue
+                    if not self._ws_running:
+                        break
+
                     data = json.loads(raw)
                     msg_type = data.get("type", "message")
                     sender = data.get("sender", "Unknown")
@@ -691,6 +765,8 @@ class DashboardScreen(Screen):
                                 )
                             except Exception:
                                 pass
+                        # Yield to event loop after every message
+                        await asyncio.sleep(0)
                         continue
 
                     if sender == "System":
@@ -702,11 +778,27 @@ class DashboardScreen(Screen):
                         # Increment unread badge for the other room
                         self.unread[room] = self.unread.get(room, 0) + 1
                         self._update_room_badge(room)
+
+                    # Yield to Textual's event loop after processing each message
+                    await asyncio.sleep(0)
+
         except Exception as e:
-            self._post_msg(f"Connection error: {e}", "msg-error")
+            if self._ws_running and self.is_attached:
+                self._post_msg(f"Connection error: {e}", "msg-error")
+                try:
+                    self.query_one("#ws-status-text").update("● Offline")
+                    self.query_one("#ws-status-text").styles.color = "#ef4444"
+                except Exception:
+                    pass
+        finally:
+            self.websocket = None
+
+    async def _on_unmount(self) -> None:
+        """Cleanly stop the WebSocket listener when the screen is dismissed."""
+        self._ws_running = False
+        if self.websocket:
             try:
-                self.query_one("#ws-status-text").update("● Offline")
-                self.query_one("#ws-status-text").styles.color = "#ef4444"
+                await self.websocket.close()
             except Exception:
                 pass
 
@@ -730,16 +822,22 @@ class DashboardScreen(Screen):
 
     # --- Message helpers ---
     def _post_msg(self, text: str, css_class: str = "msg-other", sender: str = "") -> None:
-        chat = self.query_one("#chat-history")
+        """Post a message to the chat. Safe to call from async workers."""
+        if not self.is_attached:
+            return
+        try:
+            chat = self.query_one("#chat-history")
+        except Exception:
+            return
         now = datetime.now()
-        
+
         # Show timestamp if > 2 minutes since last message
         if not self.last_msg_time or (now - self.last_msg_time).total_seconds() > 120:
             ts_label = Label(now.strftime("%H:%M"), classes="msg-timestamp")
             chat.mount(ts_label)
-        
+
         self.last_msg_time = now
-        
+
         lbl = Label(text, classes=css_class)
         chat.mount(lbl)
         chat.scroll_end(animate=False)
