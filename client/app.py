@@ -1,4 +1,5 @@
 from textual.app import App, ComposeResult
+from textual import work
 from textual.screen import Screen
 from textual.containers import Vertical, Horizontal, VerticalScroll, Center, Middle
 from textual.widgets import Input, Label, Button, RadioButton, RadioSet, Static
@@ -46,7 +47,8 @@ def save_session(username: str, server: str) -> None:
         pass
 
 # Default server URL
-DEFAULT_SERVER = "katto-server-production.up.railway.app"
+# Use localhost:8000 for local development, change to production URL for deployment
+DEFAULT_SERVER = "localhost:8000"
 TAGLINES = [
     "Connect. Converse. Collaborate.",
     "The minimalist chat experience.",
@@ -119,13 +121,17 @@ class LoginScreen(Screen):
         status.update(text)
         status.styles.color = "#f85149" if error else "#3fb950"
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         username, password, server = self._get_credentials()
         if not username or not password:
             self._set_status("Username and password required.", error=True)
             return
 
-        endpoint = "login" if event.button.id == "login-btn" else "signup"
+        self._perform_auth(username, password, server, event.button.id == "login-btn")
+
+    @work
+    async def _perform_auth(self, username: str, password: str, server: str, is_login: bool) -> None:
+        endpoint = "login" if is_login else "signup"
         url = _get_http_url(server, endpoint)
 
         try:
@@ -180,7 +186,11 @@ class Sidebar(Widget):
             yield Button("⚙ Settings", id="settings-tab-btn", classes="footer-tab")
             yield Button("✕ Quit",    id="quit-btn",          classes="footer-tab footer-quit")
 
-    async def on_mount(self) -> None:
+    def on_mount(self) -> None:
+        self._load_avatar()
+
+    @work
+    async def _load_avatar(self) -> None:
         url = _get_http_url(self.server_url, f"profile/{self.username}")
         avatar_icon = "█▄▀"
         try:
@@ -193,7 +203,10 @@ class Sidebar(Widget):
                     avatar_icon = avatar_map.get(avatar_name, avatar_icon)
         except Exception:
             pass
-        self.query_one("#sidebar-user-btn").label = f"{avatar_icon} @{self.username}"
+        try:
+            self.query_one("#sidebar-user-btn").label = f"{avatar_icon} @{self.username}"
+        except Exception:
+            pass
 
 
 # ==========================================
@@ -230,7 +243,11 @@ class ProfileScreen(Screen):
                         yield Button("Cancel", id="cancel-profile-btn")
                     yield Label("", id="profile-status")
 
-    async def on_mount(self) -> None:
+    def on_mount(self) -> None:
+        self._load_profile()
+
+    @work
+    async def _load_profile(self) -> None:
         # Fetch current profile to populate bio
         url = _get_http_url(self.server_url, f"profile/{self.username}")
         try:
@@ -239,11 +256,14 @@ class ProfileScreen(Screen):
                 data = resp.json()
                 if data.get("success"):
                     bio = data["profile"].get("bio", "")
-                    self.query_one("#profile-bio").value = bio
+                    try:
+                        self.query_one("#profile-bio").value = bio
+                    except Exception:
+                        pass
         except Exception:
             pass # ignore if fail to load
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "cancel-profile-btn":
             self.app.pop_screen()
             return
@@ -254,30 +274,36 @@ class ProfileScreen(Screen):
             radio = self.query_one("#avatar-radio-set", RadioSet)
             avatar_map = {0: "Classic", 1: "Cat", 2: "Wizard"}
             avatar = avatar_map.get(radio.pressed_index, "Classic")
+            self._save_profile(bio, password, avatar)
 
-            url = _get_http_url(self.server_url, "profile/update")
+    @work
+    async def _save_profile(self, bio: str, password: str, avatar: str) -> None:
+        url = _get_http_url(self.server_url, "profile/update")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(url, json={
+                    "username": self.username,
+                    "bio": bio if bio else None,
+                    "password": password if password else None,
+                    "avatar": avatar
+                })
+                data = resp.json()
+
+            status = self.query_one("#profile-status")
+            if data.get("success"):
+                status.update("Profile saved!")
+                status.styles.color = "#3fb950"
+                self.set_timer(1.0, lambda: self.app.pop_screen())
+            else:
+                status.update(data.get("error", "Failed."))
+                status.styles.color = "#f85149"
+        except Exception as e:
             try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.post(url, json={
-                        "username": self.username,
-                        "bio": bio if bio else None,
-                        "password": password if password else None,
-                        "avatar": avatar
-                    })
-                    data = resp.json()
-
-                status = self.query_one("#profile-status")
-                if data.get("success"):
-                    status.update("Profile saved!")
-                    status.styles.color = "#3fb950"
-                    self.set_timer(1.0, lambda: self.app.pop_screen())
-                else:
-                    status.update(data.get("error", "Failed."))
-                    status.styles.color = "#f85149"
-            except Exception as e:
                 status = self.query_one("#profile-status")
                 status.update(f"Error: {e}")
                 status.styles.color = "#f85149"
+            except Exception:
+                pass
 
 # ==========================================
 # SCREEN: USER PROFILE (View Others)
@@ -307,7 +333,11 @@ class UserProfileScreen(Screen):
                     yield Button("Close", id="close-profile-btn")
                     yield Label("", id="other-profile-status")
 
-    async def on_mount(self) -> None:
+    def on_mount(self) -> None:
+        self._load_user_profile()
+
+    @work
+    async def _load_user_profile(self) -> None:
         url = _get_http_url(self.server_url, f"profile/{self.target_username}")
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -317,29 +347,47 @@ class UserProfileScreen(Screen):
                     bio = data["profile"].get("bio", "No bio provided.")
                     avatar = data["profile"].get("avatar", "Classic")
                     friends_count = data["profile"].get("friends_count", 0)
-                    self.query_one("#other-profile-bio").update(f"Bio: {bio}")
-                    self.query_one("#other-profile-avatar").update(f"Avatar: {avatar}")
                     try:
+                        self.query_one("#other-profile-bio").update(f"Bio: {bio}")
+                        self.query_one("#other-profile-avatar").update(f"Avatar: {avatar}")
                         self.query_one("#other-profile-friends").update(f"Friends: {friends_count}")
                     except Exception:
                         pass
                 else:
-                    self.query_one("#other-profile-bio").update("User not found.")
+                    try:
+                        self.query_one("#other-profile-bio").update("User not found.")
+                    except Exception:
+                        pass
         except Exception:
-            self.query_one("#other-profile-bio").update("Failed to load profile.")
+            try:
+                self.query_one("#other-profile-bio").update("Failed to load profile.")
+            except Exception:
+                pass
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "close-profile-btn":
             self.app.pop_screen()
         elif event.button.id == "add-friend-btn":
-            url = _get_http_url(self.server_url, "friends/request")
+            self._send_friend_request()
+        elif event.button.id == "message-user-btn":
+            self.app.pop_screen()
+            # Send an event up or just handle via main dashboard
             try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.post(url, json={
-                        "from_user": self.my_username,
-                        "to_user": self.target_username
-                    })
-                    data = resp.json()
+                self.app.query_one(DashboardScreen).open_dm(self.target_username)
+            except Exception:
+                pass
+
+    @work
+    async def _send_friend_request(self) -> None:
+        url = _get_http_url(self.server_url, "friends/request")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(url, json={
+                    "from_user": self.my_username,
+                    "to_user": self.target_username
+                })
+                data = resp.json()
+                try:
                     status = self.query_one("#other-profile-status")
                     if data.get("success"):
                         status.update("Friend request sent!")
@@ -347,12 +395,13 @@ class UserProfileScreen(Screen):
                     else:
                         status.update(data.get("error", "Failed."))
                         status.styles.color = "#ef4444"
-            except Exception as e:
+                except Exception:
+                    pass
+        except Exception as e:
+            try:
                 self.query_one("#other-profile-status").update("Error connecting.")
-        elif event.button.id == "message-user-btn":
-            self.app.pop_screen()
-            # Send an event up or just handle via main dashboard
-            self.app.query_one(DashboardScreen).open_dm(self.target_username)
+            except Exception:
+                pass
 
 # ==========================================
 # SCREEN: NOTIFICATIONS
@@ -372,9 +421,10 @@ class NotificationsScreen(Screen):
                     yield Label("Loading...", id="notifications-loading")
                 yield Button("Close", id="close-notifications-btn")
 
-    async def on_mount(self) -> None:
-        await self.load_notifications()
+    def on_mount(self) -> None:
+        self.load_notifications()
 
+    @work
     async def load_notifications(self) -> None:
         card = self.query_one("#notifications-card")
         await card.remove_children()
@@ -397,38 +447,52 @@ class NotificationsScreen(Screen):
                 else:
                     await card.mount(Label("Failed to load notifications.", classes="notification-empty"))
         except Exception as e:
-            await card.mount(Label(f"Error: {e}", classes="notification-empty"))
+            try:
+                await card.mount(Label(f"Error: {e}", classes="notification-empty"))
+            except Exception:
+                pass
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "close-notifications-btn":
             self.app.pop_screen()
         elif event.button.id and event.button.id.startswith("accept-"):
             target = event.button.id[7:]
-            url = _get_http_url(self.server_url, "friends/accept")
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.post(url, json={
-                        "from_user": self.username,
-                        "to_user": target
-                    })
-                    if resp.json().get("success"):
-                        await self.load_notifications()
-                        dash = self.app.query_one(DashboardScreen)
-                        dash.run_worker(dash.update_sidebar_dms())
-            except Exception:
-                pass
+            self._accept_friend_request(target)
         elif event.button.id and event.button.id.startswith("decline-"):
             target = event.button.id[8:]
-            url = _get_http_url(self.server_url, "friends/decline")
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    await client.post(url, json={
-                        "from_user": self.username,
-                        "to_user": target
-                    })
-                await self.load_notifications()
-            except Exception:
-                pass
+            self._decline_friend_request(target)
+
+    @work
+    async def _accept_friend_request(self, target: str) -> None:
+        url = _get_http_url(self.server_url, "friends/accept")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(url, json={
+                    "from_user": self.username,
+                    "to_user": target
+                })
+                if resp.json().get("success"):
+                    await self.load_notifications()
+                    try:
+                        dash = self.app.query_one(DashboardScreen)
+                        dash.update_sidebar_dms()
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    @work
+    async def _decline_friend_request(self, target: str) -> None:
+        url = _get_http_url(self.server_url, "friends/decline")
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(url, json={
+                    "from_user": self.username,
+                    "to_user": target
+                })
+            await self.load_notifications()
+        except Exception:
+            pass
 
 # ==========================================
 # SCREEN: DASHBOARD
@@ -477,7 +541,7 @@ class DashboardScreen(Screen):
                     suggester=SuggestFromList(commands + room_cmds, case_sensitive=False)
                 )
 
-    async def on_mount(self) -> None:
+    def on_mount(self) -> None:
         self.query_one("#message-input").focus()
         topic = ROOM_TOPICS.get(self.current_room, "")
         self.query_one("#channel-topic").update(topic)
@@ -485,13 +549,14 @@ class DashboardScreen(Screen):
         self._post_system("Type [bold green]/help[/] to see available commands.")
 
         # Connect to WebSocket
-        self.run_worker(self._ws_listener())
+        self._ws_listener()
         # Fetch initial room history and DM list
-        self.run_worker(self._fetch_history(self.current_room))
-        self.run_worker(self.update_sidebar_dms())
+        self._fetch_history(self.current_room)
+        self.update_sidebar_dms()
         # Fetch initial online count
-        self.run_worker(self._refresh_online_count())
+        self._refresh_online_count()
 
+    @work
     async def _refresh_online_count(self) -> None:
         data = await self._api_get("/online")
         if data.get("success"):
@@ -501,6 +566,7 @@ class DashboardScreen(Screen):
             except Exception:
                 pass
 
+    @work
     async def update_sidebar_dms(self) -> None:
         data = await self._api_get(f"/friends/{self.username}")
         if data.get("success"):
@@ -554,8 +620,9 @@ class DashboardScreen(Screen):
         real_dm_room = f"DM-{users[0]}-{users[1]}"
         self.current_room = real_dm_room
         self._post_system(f"Switched to [bold magenta]DM with @{target}[/]")
-        self.run_worker(self._fetch_history(real_dm_room))
+        self._fetch_history(real_dm_room)
 
+    @work
     async def _fetch_history(self, room: str) -> None:
         encoded_room = urllib.parse.quote(room)
         url = _get_http_url(self.server_url, f"messages/{encoded_room}")
@@ -587,6 +654,7 @@ class DashboardScreen(Screen):
         chat.scroll_end(animate=False)
 
     # --- WebSocket ---
+    @work
     async def _ws_listener(self) -> None:
         ws_url = _get_ws_url(self.server_url, f"ws/{self.username}")
         try:
@@ -598,7 +666,7 @@ class DashboardScreen(Screen):
                     self.query_one("#ws-status-text").styles.color = "#10b981"
                 except Exception:
                     pass
-                self.run_worker(self._refresh_online_count())
+                self._refresh_online_count()
                 while True:
                     raw = await ws.recv()
                     data = json.loads(raw)
@@ -729,24 +797,29 @@ class DashboardScreen(Screen):
              return {}
 
     # --- Input handling ---
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
+    def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
         event.input.value = ""
         if not text:
             return
 
         if text.startswith("/"):
-            await self._handle_command(text)
+            self._handle_command(text)
         else:
             if self.websocket:
-                payload = json.dumps({"content": text, "room": self.current_room})
-                try:
-                    await self.websocket.send(payload)
-                except Exception as e:
-                    self._post_msg(f"Send failed: {e}", "msg-error")
+                self._send_message(text)
             else:
                 self._post_msg("Not connected to server.", "msg-error")
 
+    @work
+    async def _send_message(self, text: str) -> None:
+        payload = json.dumps({"content": text, "room": self.current_room})
+        try:
+            await self.websocket.send(payload)
+        except Exception as e:
+            self._post_msg(f"Send failed: {e}", "msg-error")
+
+    @work
     async def _handle_command(self, text: str) -> None:
         parts = text.split()
         cmd = parts[0].lower()
@@ -764,32 +837,38 @@ class DashboardScreen(Screen):
             room = parts[1] if parts[1].startswith("#") else f"#{parts[1]}"
             if room in DEFAULT_ROOMS:
                 self.current_room = room
-                self.query_one("#channel-icon").update("💬")
-                self.query_one("#channel-name").update(room)
-                self.query_one("#channel-topic").update(ROOM_TOPICS.get(room, ""))
-                self.query_one("#message-input").placeholder = (
-                    f"Message {room} · Type /help for commands"
-                )
+                try:
+                    self.query_one("#channel-icon").update("💬")
+                    self.query_one("#channel-name").update(room)
+                    self.query_one("#channel-topic").update(ROOM_TOPICS.get(room, ""))
+                    self.query_one("#message-input").placeholder = (
+                        f"Message {room} · Type /help for commands"
+                    )
 
-                # Clear unread badge for this room
-                self.unread[room] = 0
-                self._update_room_badge(room)
+                    # Clear unread badge for this room
+                    self.unread[room] = 0
+                    self._update_room_badge(room)
 
-                # Highlight in sidebar
-                for btn in self.query("Sidebar .room-btn"):
-                    btn.remove_class("active")
-                self.query_one(f"#room-{room[1:]}").add_class("active")
+                    # Highlight in sidebar
+                    for btn in self.query("Sidebar .room-btn"):
+                        btn.remove_class("active")
+                    self.query_one(f"#room-{room[1:]}").add_class("active")
 
-                chat = self.query_one("#chat-history")
-                await chat.remove_children()
-                self._post_system(f"Switched to [bold cyan]{room}[/]")
-                self.run_worker(self._fetch_history(room))
+                    chat = self.query_one("#chat-history")
+                    chat.remove_children()
+                    self._post_system(f"Switched to [bold cyan]{room}[/]")
+                    self._fetch_history(room)
+                except Exception:
+                    self._post_msg(f"Error switching to {room}", "msg-error")
             else:
                 self._post_msg(f"Room '{room}' not found. Use /rooms to list.", "msg-error")
 
         elif cmd == "/user" or cmd == "/profile" and len(parts) >= 2:
             target = parts[1].lstrip("@")
-            self.app.push_screen(UserProfileScreen(target_username=target, my_username=self.username, server_url=self.server_url))
+            try:
+                self.app.push_screen(UserProfileScreen(target_username=target, my_username=self.username, server_url=self.server_url))
+            except Exception:
+                self._post_msg(f"Could not open profile for @{target}", "msg-error")
 
         elif cmd == "/dm" and len(parts) >= 2:
             target = parts[1].lstrip("@")
@@ -803,7 +882,7 @@ class DashboardScreen(Screen):
                 await self._api_post_with_msg("/friends/request", {"from_user": self.username, "to_user": target})
             elif subcmd == "accept":
                 await self._api_post_with_msg("/friends/accept", {"from_user": self.username, "to_user": target})
-                self.run_worker(self.update_sidebar_dms())
+                self.update_sidebar_dms()
             else:
                  self._post_msg(f"Unknown friend command. Use /friend req @user or /friend accept @user", "msg-error")
 
@@ -815,20 +894,26 @@ class DashboardScreen(Screen):
                 self._post_system(f"[bold]Friends:[/] {', '.join(friends_list) if friends_list else 'None yet.'}")
                 if pending:
                     self._post_system(f"[bold yellow]Pending requests from:[/] {', '.join(pending)}")
-                self.run_worker(self.update_sidebar_dms())
+                self.update_sidebar_dms()
             else:
                  self._post_msg("Failed to fetch friends.", "msg-error")
 
         elif cmd == "/profile":
-            self.app.push_screen(ProfileScreen(username=self.username, server_url=self.server_url))
+            try:
+                self.app.push_screen(ProfileScreen(username=self.username, server_url=self.server_url))
+            except Exception:
+                self._post_msg("Could not open profile", "msg-error")
 
         elif cmd == "/users":
             self._post_system(f"Online: [bold]{self.username}[/] (you)")
 
         elif cmd == "/clear":
-            chat = self.query_one("#chat-history")
-            await chat.remove_children()
-            self._post_system("Chat cleared.")
+            try:
+                chat = self.query_one("#chat-history")
+                chat.remove_children()
+                self._post_system("Chat cleared.")
+            except Exception:
+                self._post_msg("Error clearing chat", "msg-error")
 
         elif cmd == "/me" and len(parts) >= 2:
             action = " ".join(parts[1:])
@@ -847,16 +932,19 @@ class DashboardScreen(Screen):
                 self._post_system("Usage: /search <term>")
             else:
                 term = " ".join(parts[1:]).lower()
-                chat = self.query_one("#chat-history")
-                count = 0
-                for lbl in chat.query(Label):
-                    text = str(lbl.renderable).lower()
-                    if term in text:
-                        lbl.styles.display = "block"
-                        count += 1
-                    else:
-                        lbl.styles.display = "none"
-                self._post_system(f"[bold]Search:[/] {count} result(s) for '[italic]{term}[/]'. Type /clear to reset.")
+                try:
+                    chat = self.query_one("#chat-history")
+                    count = 0
+                    for lbl in chat.query(Label):
+                        text = str(lbl.renderable).lower()
+                        if term in text:
+                            lbl.styles.display = "block"
+                            count += 1
+                        else:
+                            lbl.styles.display = "none"
+                    self._post_system(f"[bold]Search:[/] {count} result(s) for '[italic]{term}[/]'. Type /clear to reset.")
+                except Exception:
+                    self._post_msg("Error searching messages", "msg-error")
 
         elif cmd == "/logout":
             self.app.pop_screen()
@@ -871,7 +959,7 @@ class DashboardScreen(Screen):
         btn = event.button
         if btn.id and btn.id.startswith("room-"):
             room_name = f"#{btn.id[5:]}"
-            self.run_worker(self._handle_command(f"/join {room_name}"))
+            self._handle_command(f"/join {room_name}")
         elif btn.id and btn.id.startswith("dm-"):
             target = btn.id[3:]
             self.open_dm(target)
@@ -886,10 +974,11 @@ class DashboardScreen(Screen):
             self.query_one("#message-input").value = "/search "
             self.query_one("#message-input").focus()
         elif btn.id == "members-btn":
-            self.run_worker(self._show_online_members())
+            self._show_online_members()
         elif btn.id == "quit-btn":
             self.app.exit()
 
+    @work
     async def _show_online_members(self) -> None:
         data = await self._api_get("/online")
         if data.get("success"):
@@ -928,6 +1017,8 @@ class Katto(App):
 
 def main() -> None:
     """Console script entry point — called by the `katto` command."""
+    if os.name == "nt":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     Katto().run()
 
 
