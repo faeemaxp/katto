@@ -1,15 +1,44 @@
 # Python-generated files
 __pycache__/
 *.py[oc]
+*.pyo
+*.pyc
+*.egg-info/
 build/
 dist/
 wheels/
-*.egg-info
 
 # Virtual environments
-.venv
+.venv/
 venv/
 env/
+ENV/
+.venv
 
-# Environment variables (NEVER COMMIT THIS)
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables (Never commit these!)
 .env
+.env.local
+.env.*.local
+
+# Package manager lock files (using pip, not uv)
+uv.lock
+poetry.lock
+Pipfile.lock
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log

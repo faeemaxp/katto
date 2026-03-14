@@ -4,10 +4,20 @@ import json
 import hashlib
 from datetime import datetime
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import profiles, users, messages, friends
 
 app = FastAPI()
+
+# Add CORS middleware for WebSocket and HTTP compatibility
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ==========================================
 # AUTH MODELS
