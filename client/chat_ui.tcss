@@ -1,782 +1,463 @@
 /* ==========================================
-   KATTO — MODERN NEON/SLATE THEME
+   KATTO — NEON SLATE  v4
+   VoiceView inline — same layout as text
    ========================================== */
 
-/* --- GLOBAL STYLES --- */
-Screen {
-    background: #0f172a;
-    color: #f8fafc;
-}
+Screen { background: #080e1a; color: #e2e8f0; }
 
 Header {
-    background: #0b1120;
-    color: #6366f1;
-    text-style: bold;
-    dock: top;
+    background: #0d1525; color: #7c85f5; text-style: bold;
+    dock: top; height: 3; content-align: center middle;
+    border-bottom: tall #1e2d45;
 }
-
 Footer {
-    background: #0b1120;
-    color: #94a3b8;
-    dock: bottom;
+    background: #0d1525; color: #64748b;
+    dock: bottom; height: 1; border-top: tall #1a2638;
 }
 
 /* ==========================================
-   LOGIN SCREEN
+   LOGIN
    ========================================== */
+LoginScreen { align: center middle; background: #080e1a; }
 
 #login-logo {
-    color: #6366f1;
-    text-style: bold;
-    content-align: center middle;
-    width: 100%;
-    margin-top: 1;
-    margin-bottom: 0;
+    color: #6366f1; text-style: bold; content-align: center middle;
+    width: 100%; height: 5; margin-top: 2; margin-bottom: 1;
 }
-
 #login-subtitle {
-    color: #94a3b8;
-    content-align: center middle;
-    width: 100%;
-    margin-bottom: 2;
-    text-style: italic;
+    color: #475569; content-align: center middle;
+    width: 100%; height: 2; margin-bottom: 2; text-style: italic;
 }
-
 #login-card {
-    width: 60;
-    height: auto;
-    border: round #334155;
-    background: #1e293b;
-    padding: 1 2;
-    margin: 1;
+    width: 68; height: auto; border: tall #2d3f5c;
+    background: #0d1a2e; padding: 3 5; margin: 0;
 }
-
 #login-card Input {
-    margin-bottom: 0;
-    background: #0f172a;
-    border: tall #334155;
-    color: #f8fafc;
-    padding: 0 1;
+    margin-bottom: 1; background: #060c18; border: tall #243147;
+    color: #f0f4fc; padding: 0 2; height: 3;
 }
+#login-card Input.-invalid { border: tall #ef4444; background: #130a0a; }
+#login-card Input:focus    { border: tall #6366f1; background: #09112a; color: #ffffff; }
+#login-card Input:hover    { border: tall #3d4f6e; background: #080f1f; }
 
-#login-card Input:focus {
-    border: tall #8b5cf6;
-    background: #151f38;
-}
+#server-toggle { height: auto; margin-top: 1; margin-bottom: 1; layout: horizontal; align: left middle; }
+#server-toggle RadioButton        { background: transparent; color: #64748b; border: none; }
+#server-toggle RadioButton:focus  { color: #818cf8; text-style: bold; }
+#server-toggle RadioButton.-on    { color: #a5b4fc; text-style: bold; }
+#custom-server-input { display: none; margin-bottom: 2; margin-top: 1; }
 
-#server-toggle {
-    height: auto;
-    margin-bottom: 0;
-    content-align: left middle;
-}
-
-#server-toggle Label {
-    color: #94a3b8;
-    margin-right: 2;
-}
-
-#server-toggle RadioButton {
-    background: transparent;
-    color: #f8fafc;
-}
-
-#server-toggle RadioButton:focus {
-    text-style: bold;
-}
-
-#custom-server-input {
-    display: none;
-}
-
-#login-buttons {
-    height: auto;
-    layout: horizontal;
-    margin-top: 1;
-    align: center middle;
-}
-
+#login-buttons { height: auto; layout: vertical; margin-top: 2; width: 100%; }
 #login-btn {
-    background: #6366f1;
-    color: #ffffff;
-    border: none;
-    min-width: 18;
-    margin-right: 2;
-    text-style: bold;
+    background: #4f46e5; color: #ffffff; border: none; width: 100%;
+    text-style: bold; height: 3; margin-bottom: 1; content-align: center middle;
 }
-
-#login-btn:hover {
-    background: #818cf8;
-}
-
+#login-btn:hover    { background: #4338ca; }
+#login-btn:disabled { background: #1e293b; color: #475569; }
 #signup-btn {
-    background: #334155;
-    color: #f8fafc;
-    border: none;
-    min-width: 18;
+    background: transparent; color: #818cf8; border: tall #2d3f5c;
+    width: 100%; height: 3; content-align: center middle;
 }
-
-#signup-btn:hover {
-    background: #475569;
-}
-
+#signup-btn:hover { background: #111f35; color: #a5b4fc; border: tall #4f46e5; }
 #login-status {
-    color: #ef4444;
-    content-align: center middle;
-    width: 100%;
-    height: auto;
-    margin-top: 1;
-    text-style: bold;
+    color: #f87171; content-align: center middle; width: 100%;
+    height: auto; margin-top: 1; text-style: bold;
 }
 
 /* ==========================================
-   DASHBOARD SCREEN
+   DASHBOARD
    ========================================== */
+#dashboard { layout: horizontal; height: 1fr; }
 
-#dashboard {
-    layout: horizontal;
-    height: 1fr;
-}
-
-/* --- SIDEBAR --- */
+/* ==========================================
+   SIDEBAR
+   ========================================== */
 #sidebar {
-    width: 32;
-    background: #0b1120;
-    border-right: vkey #334155;
-    height: 100%;
+    width: 36; background: #080e1a; border-right: tall #1a2638;
+    height: 100%; layout: vertical;
 }
 
 #sidebar-profile-area {
-    width: 100%;
-    height: auto;
-    background: #0f172a;
-    border-bottom: hkey #334155;
-    padding: 1 2;
-    layout: horizontal;
+    width: 100%; height: 7; background: #0c1726; border-bottom: tall #1e2d45;
+    padding: 1 2; layout: horizontal; align: left middle;
 }
-
+#sidebar-user-info  { width: 1fr; height: auto; layout: vertical; }
 #sidebar-user-btn {
-    width: 1fr;
-    color: #f8fafc;
-    text-style: bold;
-    content-align: left middle;
-    background: transparent;
-    border: none;
-    padding: 0;
+    background: transparent; color: #e2e8f0; border: none; text-style: bold;
+    height: 2; width: 100%; content-align: left middle; padding: 0;
 }
+#sidebar-user-btn:hover { color: #818cf8; }
+#ws-status-text { color: #374151; text-style: italic; height: 1; }
+#ws-status-text.connected    { color: #10b981; }
+#ws-status-text.connecting   { color: #f59e0b; }
+#ws-status-text.disconnected { color: #ef4444; }
 
-#sidebar-user-btn:hover {
-    color: #818cf8;
-}
-
-#sidebar-top-actions {
-    width: auto;
-    height: auto;
-    layout: horizontal;
-}
-
+#sidebar-top-actions { width: auto; height: auto; layout: horizontal; align: right middle; }
 .icon-btn {
-    min-width: 4;
-    padding: 0;
-    margin-left: 1;
-    background: transparent;
-    color: #94a3b8;
-    border: none;
+    min-width: 4; padding: 0; background: transparent; color: #4b5c73;
+    border: none; height: 3; width: 4; content-align: center middle;
 }
-
-.icon-btn:hover {
-    color: #f8fafc;
-    background: #1e293b;
-}
+.icon-btn:hover { color: #c7d2fe; background: #131f33; }
+.icon-btn:focus { color: #818cf8; background: #1a2842; border: none; }
 
 #sidebar-scroll-area {
-    height: 1fr;
-    scrollbar-size-vertical: 1;
+    height: 1fr; overflow-y: scroll;
+    scrollbar-size-vertical: 1; scrollbar-color: #1e2d45;
+    scrollbar-color-hover: #2d3f5c; scrollbar-color-active: #6366f1;
 }
 
-#sidebar-dms {
-    height: auto;
-    min-height: 1;
+Collapsible { padding: 0; margin: 0; background: transparent; border: none; height: auto; }
+Collapsible > .collapsible--title {
+    color: #4b5c73; text-style: bold; padding: 0 2; height: 3;
+    background: #0a1322; border-bottom: tall #131f33;
 }
+Collapsible > .collapsible--title:hover { color: #7c8fab; background: #0d1a2e; }
+Collapsible > Contents { padding: 0; margin: 0; height: auto; min-height: 0; }
 
-#sidebar-section-title {
-    color: #6366f1;
-    text-style: bold;
-    padding: 1 1 0 2;
-}
+.sidebar-section-title { color: #2d3f5c; text-style: bold; padding: 0 2; height: 2; margin-top: 1; }
+#sidebar-dms { height: auto; margin: 0; padding: 0; }
 
-.sidebar-section-title {
-    color: #6366f1;
-    text-style: bold;
-    padding: 1 1 0 2;
-}
-
+/* Text channel buttons */
 .room-btn {
-    background: transparent;
-    color: #94a3b8;
-    border: none;
-    width: 100%;
-    content-align: left middle;
-    padding: 0 2;
-    height: 1;
+    background: transparent; color: #64748b; border: none;
+    width: 100%; content-align: left middle; height: 2; padding: 0 3; margin: 0;
 }
-
-.room-btn:hover {
-    background: #1e293b;
-    color: #f8fafc;
-}
-
+.room-btn:hover { background: #0d1a2e; color: #c7d2fe; }
 .room-btn:focus, .room-btn.active {
-    background: #1e1b4b;
-    color: #818cf8;
-    text-style: bold;
-    border-left: thick #6366f1;
+    background: #1a1060; color: #a5b4fc; text-style: bold;
+    border-left: thick #6366f1; padding-left: 2;
+}
+.room-btn.has-unread { color: #818cf8; text-style: bold; }
+
+/* Voice channel buttons — same height/padding as text, purple accent */
+.vc-channel-btn {
+    background: transparent; color: #64748b; border: none;
+    width: 100%; content-align: left middle; height: 2; padding: 0 3; margin: 0;
+}
+.vc-channel-btn:hover { background: #0d1a2e; color: #a78bfa; }
+.vc-channel-btn:focus, .vc-channel-btn.active {
+    background: #2e1065; color: #c4b5fd; text-style: bold;
+    border-left: thick #7c3aed; padding-left: 2;
 }
 
-.room-btn.has-unread {
-    color: #f8fafc;
-    text-style: bold;
-}
-
+/* DM buttons */
 .dm-btn {
-    background: transparent;
-    color: #94a3b8;
-    border: none;
-    width: 100%;
-    content-align: left middle;
-    padding: 0 2;
-    height: 1;
+    background: transparent; color: #64748b; border: none;
+    width: 100%; content-align: left middle; height: 2; padding: 0 3; margin: 0;
 }
-
-.dm-btn:hover {
-    background: #1e293b;
-    color: #ec4899;
-}
-
+.dm-btn:hover { background: #1a0e2a; color: #e879a8; }
 .dm-btn:focus, .dm-btn.active {
-    background: #4c1d95;
-    color: #f9a8d4;
-    text-style: bold;
-    border-left: thick #ec4899;
+    background: #2a0a40; color: #f9a8d4; text-style: bold;
+    border-left: thick #ec4899; padding-left: 2;
+}
+.dm-btn.has-unread { color: #f9a8d4; text-style: bold; }
+
+/* ==========================================
+   VOICE BAR — bottom of sidebar, always visible,
+   always ABOVE the footer buttons
+   ========================================== */
+VoiceBar {
+    height: 9;
+    background: #0a0f1e;
+    border-top: tall #1a2638;
+    padding: 1 2;
+    layout: vertical;
+}
+VoiceBar.active {
+    background: #0c1230;
+    border-top: tall #4f46e5;
 }
 
-#sidebar-actions {
-    dock: bottom;
-    height: auto;
-    padding: 1;
-    border-top: hkey #334155;
-    background: #0b1120;
-}
+#vbar-inner    { height: auto; layout: vertical; }
+#vbar-status-row { height: 4; layout: horizontal; align: left middle; margin-bottom: 1; }
+#vbar-icon     { width: 4; height: 4; content-align: center middle; color: #4b5c73; text-style: bold; margin-right: 1; }
+VoiceBar.active #vbar-icon { color: #10b981; }
+#vbar-info     { width: 1fr; height: auto; layout: vertical; }
+#vbar-channel  { color: #94a3b8; text-style: bold; height: 2; content-align: left middle; }
+VoiceBar.active #vbar-channel { color: #c4b5fd; }
+#vbar-detail   { color: #374151; text-style: italic; height: 2; content-align: left middle; }
+VoiceBar.active #vbar-detail { color: #64748b; }
+#vbar-controls { height: 3; layout: horizontal; align: left middle; }
 
-/* --- SIDEBAR FOOTER TAB BAR --- */
+.vbar-btn {
+    background: #131f33; color: #4b5c73; border: none;
+    width: 5; height: 3; content-align: center middle;
+    margin-right: 1; text-style: bold;
+}
+.vbar-btn:hover    { background: #1e2d45; color: #a5b4fc; }
+.vbar-btn:focus    { background: #1e1b4b; color: #818cf8; border: none; }
+.vbar-btn:disabled { background: #0d1525; color: #1e2d45; }
+.vbar-btn.active   { background: #1e1b4b; color: #818cf8; }
+.vbar-leave { background: #1a0707; color: #f87171; margin-left: 1; }
+.vbar-leave:hover { background: #450a0a; color: #fca5a5; }
+
+/* Sidebar footer */
 #sidebar-footer {
-    dock: bottom;
-    height: 3;
-    background: #060d1a;
-    border-top: tall #6366f1;
-    layout: horizontal;
+    height: 4; background: #0c1726; border-top: tall #1a2638; layout: horizontal;
 }
-
 .footer-tab {
-    width: 1fr;
-    height: 100%;
-    background: #060d1a;
-    color: #64748b;
-    border: none;
-    text-style: bold;
-    content-align: center middle;
+    width: 1fr; height: 100%; background: transparent; color: #4b5c73;
+    border: none; text-style: bold; content-align: center middle;
 }
-
-.footer-tab:hover {
-    background: #1e293b;
-    color: #818cf8;
-}
-
-.footer-tab:focus {
-    background: #1e1b4b;
-    color: #a5b4fc;
-}
-
-.footer-quit {
-    color: #7f1d1d;
-    border-left: tall #334155;
-}
-
-.footer-quit:hover {
-    background: #450a0a;
-    color: #fca5a5;
-}
-
-/* --- WS STATUS DOT --- (element removed from compose, rule kept for safety) */
-#ws-status-dot {
-    display: none;
-}
-
-#profile-btn {
-    display: none;
-}
-
+.footer-tab:hover { background: #111f35; color: #94a3b8; }
+.footer-tab:focus { background: #1e1b4b; color: #a5b4fc; border-top: tall #6366f1; }
 #quit-btn {
-    background: #1e293b;
-    color: #ef4444;
-    border: none;
-    width: 100%;
+    background: #0c1726; color: #7f1d1d; border: none;
+    width: 1fr; height: 100%; content-align: center middle;
 }
+#quit-btn:hover { background: #1a0707; color: #fca5a5; }
 
-#quit-btn:hover {
-    background: #7f1d1d;
-    color: #fca5a5;
-}
-
-/* --- MAIN CONTENT AREA --- */
-#main-content {
-    width: 1fr;
-    height: 100%;
-    background: #0f172a;
-}
+/* ==========================================
+   MAIN CONTENT
+   ========================================== */
+#main-content { width: 1fr; height: 100%; background: #080e1a; layout: vertical; }
 
 #channel-header-container {
-    dock: top;
-    height: 5;
-    background: #111827;
-    border-bottom: tall #6366f1;
-    padding: 0 3;
-    layout: horizontal;
-    align: left middle;
+    height: 7; background: #0c1726; border-bottom: tall #1a2638;
+    padding: 1 3; layout: horizontal; align: left middle;
 }
-
 #channel-icon {
-    color: #818cf8;
-    text-style: bold;
-    margin-right: 2;
-    content-align: center middle;
-    width: auto;
-    height: auto;
+    color: #6366f1; text-style: bold; margin-right: 2;
+    content-align: center middle; width: 5; height: 5;
+    background: #0f1f38; border: tall #1e2d45;
 }
+#channel-info         { width: 1fr; height: auto; layout: vertical; }
+#channel-name         { color: #e2e8f0; text-style: bold; height: 2; content-align: left bottom; }
+#channel-topic        { color: #374151; text-style: italic; height: 2; width: 1fr; content-align: left top; }
+#channel-header-actions { width: auto; height: 100%; layout: horizontal; align: right middle; }
+#channel-online-count { color: #10b981; content-align: right middle; margin-right: 2; width: auto; text-style: bold; }
 
-#channel-info {
-    width: 1fr;
-    height: auto;
-    layout: vertical;
-    content-align: left middle;
-}
-
-#channel-name {
-    color: #f1f5f9;
-    text-style: bold;
-    content-align: left middle;
-    height: 2;
-}
-
-#channel-topic {
-    color: #64748b;
-    text-style: italic;
-    content-align: left middle;
-    height: 1;
-    width: 1fr;
-}
-
-#channel-header-actions {
-    width: auto;
-    height: 100%;
-    layout: horizontal;
-    align: right middle;
-    padding-right: 1;
-}
-
-#channel-online-count {
-    color: #34d399;
-    content-align: right middle;
-    margin-right: 2;
-    width: auto;
-    text-style: bold;
-}
+/* chat-area fills remaining height — contains either chat widgets or VoiceView */
+#chat-area { height: 1fr; layout: vertical; }
 
 #chat-history {
-    height: 1fr;
-    padding: 1 2;
-    background: #0f172a;
+    height: 1fr; padding: 1 3; background: #080e1a;
+    scrollbar-size-vertical: 1; scrollbar-color: #131f33;
+    scrollbar-color-hover: #1e2d45; scrollbar-color-active: #4f46e5;
 }
 
-.msg-system {
-    color: #94a3b8;
-    text-style: italic;
-    margin-bottom: 0;
-}
-
-.msg-self {
-    color: #a5b4fc;
-    background: #1e1b4b;
-    padding: 0 1;
-    margin-bottom: 0;
-}
-
-.msg-other {
-    color: #f8fafc;
-    margin-bottom: 0;
-}
-
-.msg-error {
-    color: #ef4444;
-    margin-bottom: 0;
-}
-
-.msg-help {
-    color: #10b981;
-    margin-bottom: 0;
-}
-
-.msg-empty {
-    color: #475569;
-    text-style: italic;
-    content-align: center middle;
-    width: 100%;
-    margin-top: 2;
-    margin-bottom: 2;
-}
-
-.msg-emote {
-    color: #c084fc;
-    text-style: italic;
-    margin-bottom: 0;
-}
-
-.msg-timestamp {
-    color: #475569;
-    width: 100%;
-    content-align: center middle;
-    margin: 1 0;
-    text-style: italic;
-}
+.msg-system    { color: #2d3f5c; text-style: italic; margin-bottom: 0; content-align: center middle; width: 100%; padding: 0 1; }
+.msg-self      { color: #a5b4fc; background: #0d1240; border-left: thick #6366f1; padding: 0 2; margin-bottom: 1; margin-right: 4; }
+.msg-other     { color: #e2e8f0; background: #0c1726; border-left: thick #1e2d45; padding: 0 2; margin-bottom: 1; }
+.msg-other:hover { background: #0d1a2e; border-left: thick #2d3f5c; }
+.msg-error     { color: #f87171; text-style: bold; margin-bottom: 0; background: #1a0606; border-left: thick #ef4444; padding: 0 2; }
+.msg-help      { color: #6ee7b7; background: #041a13; border-left: thick #10b981; margin-bottom: 0; padding: 0 2; }
+.msg-emote     { color: #c084fc; text-style: italic; margin-bottom: 0; padding: 0 2; }
+.msg-empty     { color: #1e2d45; text-style: italic; content-align: center middle; width: 100%; margin-top: 4; margin-bottom: 2; }
+.msg-timestamp { color: #1a2638; width: 100%; content-align: center middle; margin: 2 0; text-style: italic; }
 
 #message-input {
-    dock: bottom;
-    margin: 0 2 1 2;
-    background: #1e293b;
-    border: tall #334155;
-    color: #f8fafc;
+    margin: 1 3 2 3; background: #0c1726; border: tall #1e2d45;
+    color: #e2e8f0; padding: 0 2; height: 3;
 }
+#message-input:focus { border: tall #6366f1; background: #09112a; color: #ffffff; }
+#message-input:hover { border: tall #2d3f5c; background: #0d1a2e; }
 
-#message-input:focus {
-    border: tall #8b5cf6;
-    background: #1e1b4b;
-}
-
-/* ==========================================
-   PROFILE SCREEN
-   ========================================== */
-
-#profile-title {
-    color: #6366f1;
-    text-style: bold;
-    content-align: center middle;
-    width: 100%;
-    margin-bottom: 1;
-    margin-top: 1;
-}
-
-#profile-card {
-    width: 60;
-    height: auto;
-    border: round #334155;
-    background: #1e293b;
-    padding: 1 2;
-    margin: 1;
-}
-
-#profile-username {
-    color: #f8fafc;
-    text-style: bold;
-    margin-bottom: 1;
-    content-align: center middle;
-    width: 100%;
-}
-
-.profile-label {
-    color: #94a3b8;
-    margin-top: 1;
-}
-
-#profile-card Input {
-    margin-bottom: 0;
-    background: #0f172a;
-    border: tall #334155;
-    color: #f8fafc;
-    padding: 0 1;
-}
-
-#profile-card Input:focus {
-    border: tall #8b5cf6;
-    background: #151f38;
-}
-
-#avatar-radio-set {
-    height: auto;
-    margin-top: 1;
-    margin-bottom: 1;
-}
-
-#avatar-radio-set RadioButton {
-    background: transparent;
-    color: #f8fafc;
-}
-
-#avatar-radio-set RadioButton:focus {
-    text-style: bold;
-}
-
-#profile-buttons {
-    height: auto;
-    layout: horizontal;
-    margin-top: 1;
-    align: center middle;
-}
-
-#save-profile-btn {
-    background: #10b981;
-    color: #ffffff;
-    border: none;
-    min-width: 18;
-    margin-right: 2;
-    text-style: bold;
-}
-
-#save-profile-btn:hover {
-    background: #059669;
-}
-
-#cancel-profile-btn {
-    background: #334155;
-    color: #f8fafc;
-    border: none;
-    min-width: 18;
-}
-
-#cancel-profile-btn:hover {
-    background: #475569;
-}
-
-#profile-status {
-    color: #ef4444;
-    content-align: center middle;
-    width: 100%;
-    height: auto;
-    margin-top: 1;
-    text-style: bold;
+#typing-indicator {
+    height: 1; color: #2d3f5c; margin-left: 4; text-style: italic;
 }
 
 /* ==========================================
-   OTHER USER PROFILE SCREEN
+   VOICE VIEW — inline, fills #chat-area
+   Same chrome as the text channel view
    ========================================== */
-
-#other-profile-title {
-    color: #6366f1;
-    text-style: bold;
-    content-align: center middle;
-    width: 100%;
-    margin-bottom: 1;
-    margin-top: 1;
-}
-
-#other-profile-card {
-    width: 60;
-    height: auto;
-    border: round #334155;
-    background: #1e293b;
-    padding: 1 2;
-    margin: 1;
-}
-
-#other-profile-bio, #other-profile-avatar {
-    color: #f8fafc;
-    margin-bottom: 1;
-}
-
-/* --- SIDEBAR PROFILE AREA --- */
-#sidebar-profile-area {
-    height: 6;
-    layout: horizontal;
-    align: left middle;
-    padding: 1 2;
-    background: #0b1120;
-    border-bottom: tall #6366f1;
-}
-
-#sidebar-user-info {
-    width: 1fr;
-    height: auto;
+VoiceView {
+    height: 1fr;
     layout: vertical;
-    padding-left: 0;
+    background: #080e1a;
 }
 
-#sidebar-user-btn {
-    background: transparent;
-    color: #f1f5f9;
-    border: none;
-    text-style: bold;
-    height: 2;
-    width: 100%;
+/* Header row — matches #channel-header-container height/style */
+#vc-header {
+    height: 5; background: #0c1422; border-bottom: tall #2e1a4a;
+    padding: 0 3; layout: horizontal; align: left middle;
+}
+#vc-icon {
+    color: #7c3aed; text-style: bold; width: 5; height: 5;
+    content-align: center middle; margin-right: 2;
+    background: #1a0e38; border: tall #3b1f6e;
+}
+#vc-channel-name {
+    color: #e2e8f0; text-style: bold; height: 5;
+    content-align: left middle; width: 1fr;
+}
+#vc-status-label {
+    color: #10b981; height: 5; content-align: right middle;
+    text-style: bold; margin-right: 2; width: auto;
+}
+
+/* Body — two-panel */
+#vc-body { height: 1fr; layout: horizontal; }
+
+/* Left panel — participant list */
+#vc-left {
+    width: 30; background: #060c18; border-right: tall #1a2638;
+    layout: vertical;
+}
+
+/* Right panel — activity log */
+#vc-right {
+    width: 1fr; background: #080e1a; layout: vertical;
+}
+
+.vc-section-title {
+    color: #4b5c73; text-style: bold; padding: 0 2;
+    height: 3; background: #0c1726; border-bottom: tall #1a2638;
     content-align: left middle;
-    padding: 0;
 }
 
-#sidebar-user-btn:hover {
-    color: #818cf8;
-    background: transparent;
+#vc-participant-list {
+    height: 1fr;
+    scrollbar-size-vertical: 1;
+    scrollbar-color: #131f33;
+    scrollbar-color-hover: #1e2d45;
 }
 
-#ws-status-text {
-    color: #475569;
-    text-style: italic;
-    height: 1;
-    content-align: left middle;
-    padding-left: 0;
+.vc-participant {
+    color: #94a3b8; height: 3; padding: 0 2;
+    content-align: left middle; width: 100%;
+}
+.vc-participant:hover { background: #0d1a2e; color: #c7d2fe; }
+.vc-me {
+    color: #a5b4fc; text-style: bold;
+    border-left: thick #6366f1; padding-left: 1;
+}
+.vc-empty {
+    color: #2d3f5c; text-style: italic;
+    content-align: center middle; width: 100%;
+    height: 4; margin-top: 2;
 }
 
-#sidebar-top-actions {
-    width: auto;
-    height: auto;
-    layout: horizontal;
-    align: right middle;
+#vc-event-log {
+    height: 1fr; padding: 1 2;
+    scrollbar-size-vertical: 1;
+    scrollbar-color: #131f33;
+    scrollbar-color-hover: #1e2d45;
+}
+.vc-event { color: #64748b; height: 2; padding: 0 1; text-style: italic; }
+
+/* Controls bar — matches #message-input row visually */
+#vc-controls {
+    height: 5; background: #0c1726; border-top: tall #1a2638;
+    layout: horizontal; align: left middle; padding: 0 2;
+}
+#vc-self-label {
+    width: 1fr; height: 5; content-align: left middle;
+    color: #94a3b8; text-style: bold; padding: 0 1;
 }
 
-#other-profile-actions {
-    height: auto;
-    layout: horizontal;
-    margin-top: 1;
-    margin-bottom: 1;
-    align: center middle;
+.vc-ctrl-btn {
+    background: #131f33; color: #94a3b8; border: none;
+    height: 3; min-width: 14; margin-right: 1;
+    text-style: bold; content-align: center middle;
 }
+.vc-ctrl-btn:hover  { background: #1e2d45; color: #c7d2fe; }
+.vc-ctrl-btn:focus  { background: #1e1b4b; color: #818cf8; border: none; }
+.vc-ctrl-btn.active { background: #1e1b4b; color: #818cf8; }
 
-#add-friend-btn {
-    background: #6366f1;
-    color: #ffffff;
-    border: none;
-    min-width: 16;
-    margin-right: 2;
-    text-style: bold;
+.vc-leave { background: #450a0a; color: #fca5a5; margin-left: 2; }
+.vc-leave:hover { background: #7f1d1d; color: #fecaca; }
+
+/* ==========================================
+   PROFILE SCREENS
+   ========================================== */
+ProfileScreen, UserProfileScreen { align: center middle; background: #080e1a; }
+
+#profile-title, #other-profile-title {
+    color: #818cf8; text-style: bold; content-align: center middle;
+    width: 100%; height: 3; margin-bottom: 1; margin-top: 2;
 }
-
-#add-friend-btn:hover {
-    background: #818cf8;
+#profile-card, #other-profile-card {
+    width: 68; height: auto; border: tall #2d3f5c; background: #0d1a2e; padding: 3 5; margin: 0;
 }
+#profile-username { color: #f0f4fc; text-style: bold; margin-bottom: 2; content-align: center middle; width: 100%; height: 3; }
+.profile-label    { color: #4b5c73; margin-top: 2; margin-bottom: 0; text-style: bold; padding: 0 1; }
 
-#message-user-btn {
-    background: #10b981;
-    color: #ffffff;
-    border: none;
-    min-width: 16;
-    text-style: bold;
+#profile-card Input, #other-profile-card Input {
+    margin-bottom: 1; background: #060c18; border: tall #1e2d45; color: #f0f4fc; padding: 0 2; height: 3;
 }
+#profile-card Input:focus, #other-profile-card Input:focus { border: tall #818cf8; background: #09112a; }
 
-#message-user-btn:hover {
-    background: #059669;
-}
+#avatar-radio-set RadioButton        { background: transparent; color: #4b5c73; }
+#avatar-radio-set RadioButton:focus  { color: #818cf8; text-style: bold; }
+#avatar-radio-set RadioButton.-on    { color: #a5b4fc; text-style: bold; }
 
-#close-profile-btn {
-    background: #334155;
-    color: #f8fafc;
-    border: none;
-    width: 100%;
-    margin-top: 1;
-}
+#profile-buttons, #other-profile-actions { height: 3; layout: horizontal; margin-top: 3; align: center middle; }
 
-#close-profile-btn:hover {
-    background: #475569;
-}
-
-#other-profile-status {
-    color: #ef4444;
-    content-align: center middle;
-    width: 100%;
-    height: auto;
-    margin-top: 1;
-    text-style: bold;
+#save-profile-btn     { background: #0f6542; color: #d1fae5; border: none; width: 1fr; margin-right: 1; text-style: bold; height: 3; }
+#save-profile-btn:hover { background: #065f46; }
+#cancel-profile-btn   { background: transparent; color: #64748b; border: tall #243147; width: 1fr; margin-left: 1; height: 3; }
+#cancel-profile-btn:hover { background: #0c1726; border: tall #2d3f5c; }
+#add-friend-btn  { background: #1e1b4b; color: #a5b4fc; border: tall #4f46e5; width: 1fr; margin-right: 1; text-style: bold; height: 3; }
+#add-friend-btn:hover { background: #312e81; }
+#message-user-btn { background: #0f6542; color: #d1fae5; border: none; width: 1fr; margin-left: 1; text-style: bold; height: 3; }
+#message-user-btn:hover { background: #065f46; }
+#call-user-btn   { background: #1e1b4b; color: #c084fc; border: tall #7c3aed; width: 1fr; margin-left: 1; text-style: bold; height: 3; }
+#call-user-btn:hover { background: #2e1065; }
+#close-profile-btn { background: transparent; color: #4b5c73; border: tall #1a2638; width: 100%; margin-top: 1; height: 3; }
+#close-profile-btn:hover { background: #0c1726; border: tall #2d3f5c; }
+#profile-status, #other-profile-status {
+    color: #f87171; content-align: center middle; width: 100%; height: auto; margin-top: 1; text-style: bold;
 }
 
 /* ==========================================
-   NOTIFICATIONS SCREEN
+   NOTIFICATIONS
    ========================================== */
-
+NotificationsScreen { align: center middle; background: #080e1a; }
 #notifications-title {
-    color: #ec4899;
-    text-style: bold;
-    content-align: center middle;
-    width: 100%;
-    margin-bottom: 1;
-    margin-top: 1;
+    content-align: center middle; width: 100%; height: 4; margin-bottom: 1; margin-top: 2;
+    text-style: bold; color: #818cf8; background: #0d1a2e; padding: 1 2; border: tall #2d3f5c;
 }
-
 #notifications-card {
-    width: 60;
-    height: auto;
-    min-height: 6;
-    max-height: 20;
-    border: round #334155;
-    background: #1e293b;
-    padding: 1 2;
-    margin: 1;
+    width: 76; height: auto; min-height: 14; max-height: 36;
+    border: tall #2d3f5c; background: #0d1a2e; padding: 1 2; margin: 0;
 }
-
 .notification-item {
-    height: auto;
-    layout: horizontal;
-    background: #0f172a;
-    padding: 0 1;
-    margin-bottom: 1;
-    border: tall #334155;
-    align: left middle;
+    height: auto; min-height: 6; layout: horizontal; background: #060c18;
+    padding: 1 2; margin-bottom: 1; border: tall #1a2638; align: left middle;
 }
+.notification-item:hover { background: #0c1726; border: tall #2d3f5c; }
+.notification-text  { width: 1fr; color: #cbd5e1; padding: 0 1; }
+.notification-empty { color: #2d3f5c; text-style: italic; content-align: center middle; width: 100%; height: 6; margin: 2 0; }
+.notif-accept-btn  { background: #0f6542; color: #d1fae5; border: none; min-width: 14; margin-left: 1; text-style: bold; height: 3; }
+.notif-accept-btn:hover  { background: #065f46; }
+.notif-decline-btn { background: #450a0a; color: #fca5a5; border: none; min-width: 14; margin-left: 1; text-style: bold; height: 3; }
+.notif-decline-btn:hover { background: #7f1d1d; }
+#notifications-actions { layout: horizontal; width: 100%; margin-top: 2; height: 4; }
+#refresh-notifications-btn { width: 50%; margin-right: 1; background: #1e1b4b; color: #a5b4fc; border: tall #4f46e5; text-style: bold; height: 3; }
+#refresh-notifications-btn:hover { background: #312e81; }
+#close-notifications-btn { width: 50%; background: transparent; color: #4b5c73; border: tall #1a2638; text-style: bold; height: 3; }
+#close-notifications-btn:hover { background: #0c1726; border: tall #2d3f5c; }
 
-.notification-text {
-    width: 1fr;
-    color: #f8fafc;
-    content-align: left middle;
+/* ==========================================
+   VOICE CALL LOG
+   ========================================== */
+VoiceCallLogScreen { align: center middle; background: #080e1a; }
+#vcall-log-title {
+    color: #a78bfa; text-style: bold; content-align: center middle; width: 100%;
+    height: 4; margin-bottom: 1; margin-top: 2;
+    background: #0d1a2e; padding: 1 2; border: tall #4c1d95;
 }
-
-.notif-accept-btn {
-    background: #10b981;
-    color: #fff;
-    border: none;
-    min-width: 10;
-    margin-left: 1;
-    text-style: bold;
+#vcall-log-card {
+    width: 86; height: auto; min-height: 14; max-height: 40;
+    border: tall #2d3f5c; background: #0d1a2e; padding: 1 2; margin: 0;
 }
-
-.notif-accept-btn:hover {
-    background: #059669;
+.vcall-session-header {
+    color: #818cf8; text-style: bold; background: #060c18;
+    border: tall #1a2638; padding: 0 2; height: 3; margin-top: 1; width: 100%;
 }
-
-.notif-decline-btn {
-    background: #7f1d1d;
-    color: #fca5a5;
-    border: none;
-    min-width: 10;
-    margin-left: 1;
-    text-style: bold;
+.vcall-participant-row {
+    color: #94a3b8; background: #080e1a; padding: 0 2; height: 2; width: 100%;
 }
+#vcall-log-actions { layout: horizontal; width: 100%; margin-top: 2; height: 4; }
+#vcall-log-refresh-btn { width: 50%; margin-right: 1; background: #1e1b4b; color: #a5b4fc; border: tall #4f46e5; text-style: bold; height: 3; }
+#vcall-log-refresh-btn:hover { background: #312e81; }
+#vcall-log-close-btn { width: 50%; background: transparent; color: #4b5c73; border: tall #1a2638; text-style: bold; height: 3; }
+#vcall-log-close-btn:hover { background: #0c1726; border: tall #2d3f5c; }
 
-.notif-decline-btn:hover {
-    background: #991b1b;
-    color: #fff;
-}
-
-.notification-empty {
-    color: #94a3b8;
-    text-style: italic;
-    content-align: center middle;
-    width: 100%;
-    margin-top: 1;
-}
-
-#close-notifications-btn {
-    background: #334155;
-    color: #f8fafc;
-    border: none;
-    width: 100%;
-    margin-top: 1;
-    align: center middle;
-}
-
-#close-notifications-btn:hover {
-    background: #475569;
+/* ==========================================
+   SCROLLBARS
+   ========================================== */
+ScrollableContainer {
+    scrollbar-size-vertical: 1; scrollbar-color: #131f33;
+    scrollbar-color-hover: #1e2d45; scrollbar-color-active: #4f46e5;
 }
